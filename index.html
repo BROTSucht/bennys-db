@@ -123,7 +123,7 @@
             <div class="calc-box">
                 <label>Gesamtbetrag</label>
                 <div class="price-display" id="totalDisplay">$0</div>
-                <label>Mitarbeiter Anteil (0%)</label>
+                <label>Mitarbeiter Anteil (5%)</label>
                 <div class="staff-display" id="staffDisplay">$0</div>
                 <button class="action-btn" onclick="submitRepair()">Reparatur Speichern</button>
                 <button class="danger-btn" style="background:#444" onclick="location.reload()">Formular Leeren</button>
@@ -654,11 +654,11 @@
             items.push({ name: c.parentElement.innerText.split('(')[0].trim(), price: val });
         });
         const m = document.getElementById('p_member').value;
-        let d = m==="Basic"?10:m==="Premium"?25:m==="Business"?50:0;
+        let d = m==="Basic"?10:m==="Premium"?25:m==="Business"?25:0;
         let total = Math.round(base * (1 - (d/100)));
         
         document.getElementById('totalDisplay').innerText = "$" + total.toLocaleString('de-DE');
-        document.getElementById('staffDisplay').innerText = "$" + Math.round(total * 0.5).toLocaleString('de-DE');
+        document.getElementById('staffDisplay').innerText = "$" + Math.round(total * 0.05).toLocaleString('de-DE');
         
         generateInvoice(items, base, d, total);
     }
