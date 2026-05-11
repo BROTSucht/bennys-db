@@ -79,7 +79,7 @@
                         <option value="Keine">Kein Rabatt (0%)</option>
                         <option value="Basic">Basic Mitglied (10%)</option>
                         <option value="Premium">Premium Mitglied (25%)</option>
-                        <option value="Business">Business Partner (50%)</option>
+                        <option value="Business">Business Partner (25%)</option>
                     </select>
                 </div>
                 <button class="danger-btn" onclick="submitToImpound()">Ins Impound schicken</button>
@@ -99,31 +99,31 @@
                 <div class="damage-item"><span>Hinterrad R ($<small id="p_rad_hr">300</small>)</span> <input type="checkbox" data-key="rad_hr" value="300" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Tür Vorne L ($<small id="p_tuer_vl">400</small>)</span> <input type="checkbox" data-key="tuer_vl" value="400" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Tür Vorne R ($<small id="p_tuer_vr">400</small>)</span> <input type="checkbox" data-key="tuer_vr" value="400" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheiben Vorne L ($<small id="p_seiten_glas">125</small>)</span> <input type="checkbox" data-key="seiten_glas" value="500" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheiben Vorne R ($<small id="p_seiten_glas">125</small>)</span> <input type="checkbox" data-key="seiten_glas" value="500" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheiben Hinten L ($<small id="p_seiten_glas">125</small>)</span> <input type="checkbox" data-key="seiten_glas" value="500" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheiben Hinten R ($<small id="p_seiten_glas">125</small>)</span> <input type="checkbox" data-key="seiten_glas" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheiben Vorne L ($<small id="p_seiten_glas_vorne_l">125</small>)</span> <input type="checkbox" data-key="seiten_glas_vorne_l" value="125" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheiben Vorne R ($<small id="p_seiten_glas_vorne_r">125</small>)</span> <input type="checkbox" data-key="seiten_glas_vorne_r" value="125" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheiben Hinten L ($<small id="p_seiten_glas_hinten_l">125</small>)</span> <input type="checkbox" data-key="seiten_glas_hinten_l" value="125" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheiben Hinten R ($<small id="p_seiten_glas_hinten_r">125</small>)</span> <input type="checkbox" data-key="seiten_glas_hinten_r" value="125" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Heckscheibe ($<small id="p_heckscheibe">280</small>)</span> <input type="checkbox" data-key="heckscheibe" value="280" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Heckstange ($<small id="p_heckstange">200</small>)</span> <input type="checkbox" data-key="heckstange" value="200" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Kofferraum ($<small id="p_kofferraum">300</small>)</span> <input type="checkbox" data-key="kofferraum" value="300" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Rücklicht L ($<small id="p_ruecklicht_l">150</small>)</span> <input type="checkbox" data-key="ruecklicht_l" value="150" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Rücklicht R ($<small id="p_ruecklicht_r">150</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Abschleppen Stadt ($<small id="abschleppen_stadt">500</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Abschleppen Außerhalb($<small id="abschleppen_außerhalb">750</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Leichte Unfallbergung ($<small id="leichte_unfallbergung">750</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Schwere Unfallbergung ($<small id="schwere_unfallbergung">1200</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Wasser oder Offroad Bergung ($<small id="wasser_oder_offroad_bergung">1500</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Reifenpanne ($<small id="reifenpanne">250</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Starthilfe ($<small id="starthilfe">250</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Tank Leer ($<small id="tank_leer">350</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Verwahrkosten pro Tag ($<small id="verwahrkosten_pro_tag">25</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Nachtzuschlag ($<small id="nachtzuschlag">100</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Abschleppen Stadt ($<small id="p_abschleppen_stadt">500</small>)</span> <input type="checkbox" data-key="abschleppen_stadt" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Abschleppen Außerhalb($<small id="p_abschleppen_außerhalb">750</small>)</span> <input type="checkbox" data-key="abschleppen_außerhalb" value="750" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Leichte Unfallbergung ($<small id="p_leichte_unfallbergung">750</small>)</span> <input type="checkbox" data-key="leichte_unfallbergung" value="750" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Schwere Unfallbergung ($<small id="p_schwere_unfallbergung">1200</small>)</span> <input type="checkbox" data-key="schwere_unfallbergung" value="1200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Wasser oder Offroad Bergung ($<small id="p_wasser_oder_offroad_bergung">1500</small>)</span> <input type="checkbox" data-key="wasser_oder_offroad_bergung" value="1500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Reifenpanne ($<small id="p_reifenpanne">250</small>)</span> <input type="checkbox" data-key="reifenpanne" value="250" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Starthilfe ($<small id="p_starthilfe">250</small>)</span> <input type="checkbox" data-key="starthilfe" value="250" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tank Leer ($<small id="p_tank_leer">350</small>)</span> <input type="checkbox" data-key="tank_leer" value="350" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Verwahrkosten pro Tag ($<small id="p_verwahrkosten_pro_tag">25</small>)</span> <input type="checkbox" data-key="verwahrkosten_pro_tag" value="25" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Nachtzuschlag ($<small id="p_nachtzuschlag">100</small>)</span> <input type="checkbox" data-key="nachtzuschlag" value="100" onchange="calculatePrice()"></div>
             </div>
 
             <div class="calc-box">
                 <label>Gesamtbetrag</label>
                 <div class="price-display" id="totalDisplay">$0</div>
-                <label>Mitarbeiter Anteil (50%)</label>
+                <label>Mitarbeiter Anteil (0%)</label>
                 <div class="staff-display" id="staffDisplay">$0</div>
                 <button class="action-btn" onclick="submitRepair()">Reparatur Speichern</button>
                 <button class="danger-btn" style="background:#444" onclick="location.reload()">Formular Leeren</button>
@@ -196,7 +196,7 @@
                 <select id="m_status">
                     <option value="Basic">Basic (10%)</option>
                     <option value="Premium">Premium (25%)</option>
-                    <option value="Business">Business (50%)</option>
+                    <option value="Business">Business (25%)</option>
                 </select>
                 <button class="action-btn" onclick="saveMember()">Hinzufügen</button>
             </div>
