@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Benny's Luxury Customs - Pro Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        h1 { color: var(--bennys-yellow); text-align: center; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); }
+        .tab-btn { background: none; border: none; color: #888; padding: 12px 25px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+        .tab-btn.active { color: var(--bennys-yellow); border-bottom: 4px solid var(--bennys-yellow); }
+
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; background: #000; padding: 25px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.75rem; color: var(--bennys-yellow); font-weight: bold; text-transform: uppercase; }
+        input, select { padding: 12px; background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 5px; }
+        
+        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; text-transform: uppercase; grid-column: 1 / -1; margin-top: 10px; }
+        button.action-btn:hover { background: #fff; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #151515; }
+        th { text-align: left; color: var(--bennys-yellow); padding: 15px; border-bottom: 2px solid #333; font-size: 0.8rem; background: #000; }
+        td { padding: 15px; border-bottom: 1px solid #333; font-size: 0.9rem; }
+
+        /* Mitgliedschaft Farben */
+        .tag { padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .tag-none { background: #333; color: #888; }
+        .tag-bronze { background: #cd7f32; color: #fff; }
+        .tag-silber { background: #c0c0c0; color: #000; }
+        .tag-gold { background: #ffd700; color: #000; }
+
+        .invoice-preview { background: #f4f4f4; color: #000; padding: 30px; border-radius: 5px; margin-top: 20px; font-family: monospace; border: 2px dashed #000; }
+        .copy-btn { margin-top: 10px; padding: 10px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Benny's Custom Management</h1>
+
+    <div class="tabs">
+        <button id="t-ws" class="tab-btn active" onclick="showTab('workshop')">🛠️ Werkstatt</button>
+        <button id="t-db" class="tab-btn" onclick="showTab('database')">📂 Fahrzeug-Archiv</button>
+        <button id="t-iv" class="tab-btn" onclick="showTab('invoice')">🧾 Rechnung</button>
+    </div>
+
+    <div id="workshopSection">
+        <div class="input-grid">
+            <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate" placeholder="z.B. BENNY01"></div>
+            <div class="input-group"><label>Modell</label><input type="text" id="p_model" placeholder="z.B. Sultan RS"></div>
+            <div class="input-group"><label>Kundenname</label><input type="text" id="p_owner" placeholder="Vorname Nachname"></div>
+            <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic" placeholder="Dein Name"></div>
+            <div class="input-group"><label>Reparaturen / Tuning</label><input type="text" id="p_repairs" placeholder="Motorv3, Turbo, Lack..."></div>
+            <div class="input-group"><label>Preis (Netto)</label><input type="number" id="p_cost" placeholder="Summe in $"></div>
+            <div class="input-group">
+                <label>Mitgliedschaft</label>
+                <select id="p_member">
+                    <option value="Keine">Keine Mitgliedschaft</option>
+                    <option value="Bronze">Bronze (5% Rabatt)</option>
+                    <option value="Silber">Silber (10% Rabatt)</option>
+                    <option value="Gold">Gold (15% Rabatt)</option>
+                </select>
+            </div>
+            <button class="action-btn" onclick="submitRepair()">Auftrag abschließen & Rechnung erstellen</button>
+        </div>
+    </div>
+
+    <div id="databaseSection" class="hidden">
+        <input type="text" id="search" placeholder="🔍 Suche nach KFZ oder Kunde..." style="width:100%; padding:12px; margin-bottom:15px; background:#000; color:white; border:1px solid #444;" onkeyup="renderTable()">
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>KFZ / Modell</th>
+                    <th>Besitzer / Status</th>
+                    <th>Mechaniker</th>
+                    <th>Arbeit</th>
+                    <th>Kosten</th>
+                    <th>Besuche</th>
+                </tr>
+            </thead>
+            <tbody id="mainTable"></tbody>
+        </table>
+    </div>
+
+    <div id="invoiceSection" class="hidden">
+        <div id="invoiceBox" class="invoice-preview" style="display:none;">
+            <pre id="invoiceText" style="margin:0; white-space: pre-wrap;"></pre>
+            <button class="copy-btn" onclick="copyInvoice()">📋 In die Zwischenablage kopieren</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SB_URL = "https://lfeppmyecdjjvnscfdug.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmZXBwbXllY2RqanZuc2NmZHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjAwNzksImV4cCI6MjA5NDAzNjA3OX0.SCJL7C9CkhLAhYWAS-dPP6c_ApSmBXvlHoxuBzKxNBU";
+    const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+    let dataCache = [];
+
+    async function load() {
+        const { data } = await _supabase.from('Cars').select('*').order('last_repair_date', { ascending: false });
+        dataCache = data || [];
+        renderTable();
+    }
+
+    function showTab(t) {
+        document.getElementById('workshopSection').classList.add('hidden');
+        document.getElementById('databaseSection').classList.add('hidden');
+        document.getElementById('invoiceSection').classList.add('hidden');
+        document.getElementById(t + 'Section').classList.remove('hidden');
+        
+        document.getElementById('t-ws').classList.toggle('active', t === 'workshop');
+        document.getElementById('t-db').classList.toggle('active', t === 'database');
+        document.getElementById('t-iv').classList.toggle('active', t === 'invoice');
+    }
+
+    async function submitRepair() {
+        const plate = document.getElementById('p_plate').value.toUpperCase();
+        const model = document.getElementById('p_model').value;
+        const cost = parseFloat(document.getElementById('p_cost').value);
+        const repairs = document.getElementById('p_repairs').value;
+        const owner = document.getElementById('p_owner').value;
+        const mechanic = document.getElementById('p_mechanic').value;
+        const mType = document.getElementById('p_member').value;
+        const now = new Date().toLocaleString('de-DE');
+
+        if(!plate || isNaN(cost)) return alert("Bitte mindestens Kennzeichen und Kosten eingeben!");
+
+        const old = dataCache.find(c => c.plate === plate);
+        const newVisits = old ? (old.visits + 1) : 1;
+
+        const { error } = await _supabase.from('Cars').upsert({
+            plate, model, owner, mechanic, 
+            repairs_done: repairs, 
+            cost: cost + "$", 
+            has_membership: mType, 
+            last_repair_date: now, 
+            visits: newVisits
+        }, { onConflict: 'plate' });
+
+        if(!error) {
+            createInvoice(plate, owner, repairs, cost, mType, mechanic);
+            load();
+            showTab('invoice');
+        } else {
+            alert("Fehler: " + error.message);
+        }
+    }
+
+    function createInvoice(plate, owner, repairs, cost, mType, mech) {
+        let discount = 0;
+        if(mType === "Bronze") discount = 0.05;
+        if(mType === "Silber") discount = 0.10;
+        if(mType === "Gold") discount = 0.15;
+
+        const discountVal = (cost * discount).toFixed(2);
+        const total = (cost - discountVal).toFixed(2);
+
+        const text = `
+====================================
+    BENNY'S ORIGINAL MOTORWORKS
+====================================
+DATUM:      ${new Date().toLocaleDateString('de-DE')}
+KUNDE:      ${owner}
+KFZ:        ${plate}
+------------------------------------
+LEISTUNG:   ${repairs}
+MECHANIKER: ${mech}
+------------------------------------
+NETTO:      ${cost.toFixed(2)}$
+RABATT:     ${mType} (-${(discount * 100)}%)
+ABZUG:      -${discountVal}$
+
+GESAMTSUMME: ${total}$
+====================================
+  WIR SCHEISSEN AUF DEN STANDARD!
+====================================`;
+        document.getElementById('invoiceText').innerText = text;
+        document.getElementById('invoiceBox').style.display = 'block';
+    }
+
+    function renderTable() {
+        const s = document.getElementById('search').value.toLowerCase();
+        const b = document.getElementById('mainTable');
+        b.innerHTML = '';
+        dataCache.forEach(c => {
+            if(c.plate.toLowerCase().includes(s) || c.owner.toLowerCase().includes(s)) {
+                const mClass = "tag tag-" + (c.has_membership || "none").toLowerCase();
+                b.innerHTML += `<tr>
+                    <td style="font-size:0.75rem; color:#888">${c.last_repair_date || '-'}</td>
+                    <td><b>${c.plate}</b><br><small>${c.model}</small></td>
+                    <td>${c.owner}<br><span class="${mClass}">${c.has_membership || 'Keine'}</span></td>
+                    <td>${c.mechanic || '-'}</td>
+                    <td>${c.repairs_done || '-'}</td>
+                    <td style="color:#ffcc00; font-weight:bold">${c.cost}</td>
+                    <td align="center">${c.visits}x</td>
+                </tr>`;
+            }
+        });
+    }
+
+    function copyInvoice() {
+        navigator.clipboard.writeText(document.getElementById('invoiceText').innerText);
+        alert("Rechnung für den Chat kopiert!");
+    }
+
+    setInterval(load, 15000);
+    load();
+</script>
+</body>
+</html>
