@@ -179,7 +179,221 @@
         });
     }
 
-    async function markAsPickedUp(plate) {
+    async function markAs<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Benny's Luxury Customs - Pro Management v10</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
+        .container { max-width: 1300px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); }
+        .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .tab-btn.active { color: var(--bennys-yellow); border-bottom: 4px solid var(--bennys-yellow); }
+
+        /* Schadens-System Layout */
+        .repair-layout { display: grid; grid-template-columns: 1fr 1fr 350px; gap: 20px; margin-bottom: 20px; }
+        .damage-grid { background: #000; padding: 20px; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .damage-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 8px 12px; border-radius: 4px; border: 1px solid #333; }
+        .damage-item input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+        
+        .calc-box { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 2px solid var(--bennys-yellow); text-align: center; }
+        .price-display { font-size: 2rem; font-weight: bold; color: #00ff00; margin: 10px 0; }
+        .staff-display { font-size: 1.2rem; color: var(--bennys-yellow); }
+
+        .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        input, select { padding: 10px; background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 5px; }
+        
+        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; }
+        
+        .hidden { display: none; }
+        .invoice-preview { background: #fff; color: #000; padding: 25px; font-family: monospace; border-radius: 5px; border: 2px dashed #000; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Benny's Original Motorworks</h1>
+
+    <div class="tabs">
+        <button id="t-workshop" class="tab-btn active" onclick="showTab('workshop')">🛠️ Reparatursystem</button>
+        <button id="t-pickup" class="tab-btn" onclick="showTab('pickup')">📋 Abholungen</button>
+        <button id="t-database" class="tab-btn" onclick="showTab('database')">📂 Archiv</button>
+        <button id="t-invoice" class="tab-btn" onclick="showTab('invoice')">🧾 Rechnung</button>
+    </div>
+
+    <div id="workshopSection">
+        <div class="repair-layout">
+            <div class="info-pane">
+                <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate"></div>
+                <div class="input-group"><label>Modell</label><input type="text" id="p_model"></div>
+                <div class="input-group"><label>Besitzer</label><input type="text" id="p_owner"></div>
+                <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic"></div>
+                <div class="input-group"><label>Mitgliedschaft</label>
+                    <select id="p_member" onchange="calculatePrice()">
+                        <option value="Keine">Keine</option>
+                        <option value="Bronze">Bronze (-5%)</option>
+                        <option value="Silber">Silber (-10%)</option>
+                        <option value="Gold">Gold (-15%)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="damage-grid" id="damageList">
+                <div class="damage-item">Ausbeulen ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item">Motorhaube ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item">Frontstange ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item">Heckscheibe ($280) <input type="checkbox" value="280" onchange="calculatePrice()"></div>
+                <div class="damage-item">Seitenscheibe L ($280) <input type="checkbox" value="280" onchange="calculatePrice()"></div>
+                <div class="damage-item">Seitenscheibe R ($280) <input type="checkbox" value="280" onchange="calculatePrice()"></div>
+                <div class="damage-item">Heckstoßstange ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item">Scheinwerfer L ($150) <input type="checkbox" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item">Scheinwerfer R ($150) <input type="checkbox" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item">Abschleppen ($500) <input type="checkbox" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item">Anfahrt LS ($500) <input type="checkbox" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item">Anfahrt Sandy ($750) <input type="checkbox" value="750" onchange="calculatePrice()"></div>
+            </div>
+
+            <div class="calc-box">
+                <label>Rechnung an Kunden</label>
+                <div class="price-display" id="totalDisplay">$0.00</div>
+                <hr style="border: 1px solid #333">
+                <label>Mitarbeiter Provision (50%)</label>
+                <div class="staff-display" id="staffDisplay">$0.00</div>
+                <div class="input-group" style="margin-top:20px;">
+                    <label>Abholzeit</label>
+                    <input type="text" id="p_pickup" placeholder="z.B. 20:00 Uhr">
+                </div>
+                <button class="action-btn" onclick="submitRepair()">Speichern & Abschließen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pickupSection" class="hidden"><div id="pickupList"></div></div>
+
+    <div id="databaseSection" class="hidden">
+        <table>
+            <thead><tr><th>Datum</th><th>KFZ</th><th>Kunde</th><th>Preis</th><th>Besuche</th></tr></thead>
+            <tbody id="mainTable"></tbody>
+        </table>
+    </div>
+
+    <div id="invoiceSection" class="hidden">
+        <div class="invoice-preview">
+            <pre id="invoiceText"></pre>
+            <button onclick="copyInvoice()" class="copy-btn">Rechnung kopieren</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SB_URL = "https://lfeppmyecdjjvnscfdug.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmZXBwbXllY2RqanZuc2NmZHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjAwNzksImV4cCI6MjA5NDAzNjA3OX0.SCJL7C9CkhLAhYWAS-dPP6c_ApSmBXvlHoxuBzKxNBU";
+    const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+    let dataCache = [];
+    let currentTotal = 0;
+
+    function calculatePrice() {
+        let base = 0;
+        const checks = document.querySelectorAll('#damageList input[type="checkbox"]:checked');
+        checks.forEach(c => base += parseFloat(c.value));
+        
+        const mType = document.getElementById('p_member').value;
+        let disc = 0;
+        if(mType==="Bronze") disc=0.05; if(mType==="Silber") disc=0.1; if(mType==="Gold") disc=0.15;
+        
+        currentTotal = base * (1 - disc);
+        document.getElementById('totalDisplay').innerText = "$" + currentTotal.toLocaleString();
+        document.getElementById('staffDisplay').innerText = "$" + (currentTotal * 0.5).toLocaleString();
+    }
+
+    async function load() {
+        const { data } = await _supabase.from('Cars').select('*').order('last_repair_date', { ascending: false });
+        dataCache = data || [];
+        renderAll();
+    }
+
+    function showTab(t) {
+        ['workshop','pickup','database','invoice'].forEach(s => document.getElementById(s+'Section').classList.add('hidden'));
+        document.getElementById(t+'Section').classList.remove('hidden');
+        ['t-workshop','t-pickup','t-database','t-invoice'].forEach(b => document.getElementById(b).classList.remove('active'));
+        document.getElementById('t-'+t).classList.add('active');
+    }
+
+    async function submitRepair() {
+        const plate = document.getElementById('p_plate').value.toUpperCase();
+        if(!plate) return alert("Kennzeichen fehlt!");
+        
+        const old = dataCache.find(c => c.plate === plate);
+        const { error } = await _supabase.from('Cars').upsert({
+            plate: plate,
+            model: document.getElementById('p_model').value,
+            owner: document.getElementById('p_owner').value,
+            mechanic: document.getElementById('p_mechanic').value,
+            cost: currentTotal + "$",
+            pickup_time: new Date().toLocaleDateString() + " - " + document.getElementById('p_pickup').value,
+            last_repair_date: new Date().toLocaleString(),
+            visits: old ? (old.visits + 1) : 1
+        }, { onConflict: 'plate' });
+
+        if(!error) {
+            createInvoice(plate);
+            load();
+            showTab('invoice');
+        }
+    }
+
+    function createInvoice(plate) {
+        document.getElementById('invoiceText').innerText = `
+====================================
+    BENNY'S ORIGINAL MOTORWORKS
+====================================
+KFZ:        ${plate}
+KUNDE:      ${document.getElementById('p_owner').value}
+MECHANIKER: ${document.getElementById('p_mechanic').value}
+------------------------------------
+GESAMTSUMME: $${currentTotal.toFixed(2)}
+RABATT:      ${document.getElementById('p_member').value}
+------------------------------------
+PROVISION:   $${(currentTotal * 0.5).toFixed(2)}
+====================================`;
+    }
+
+    function renderAll() {
+        const b = document.getElementById('mainTable');
+        b.innerHTML = '';
+        dataCache.forEach(c => {
+            b.innerHTML += `<tr><td>${c.last_repair_date}</td><td>${c.plate}</td><td>${c.owner}</td><td>${c.cost}</td><td>${c.visits}x</td></tr>`;
+        });
+        
+        const pu = document.getElementById('pickupList');
+        pu.innerHTML = '';
+        dataCache.forEach(c => {
+            if(c.pickup_time && !c.pickup_time.includes("Abgeholt")) {
+                pu.innerHTML += `<div style="background:#000; padding:15px; margin-bottom:10px; border-left:5px solid #ffcc00;">
+                    <b>${c.plate}</b> - ${c.pickup_time} <button onclick="markDone('${c.plate}')">Abgeholt</button>
+                </div>`;
+            }
+        });
+    }
+
+    async function markDone(p) {
+        await _supabase.from('Cars').update({ pickup_time: 'Abgeholt' }).eq('plate', p);
+        load();
+    }
+
+    function copyInvoice() {
+        navigator.clipboard.writeText(document.getElementById('invoiceText').innerText);
+        alert("Kopiert!");
+    }
+
+    load();
+</script>
+</body>
+</html>PickedUp(plate) {
         await _supabase.from('Cars').update({ pickup_time: 'Abgeholt' }).eq('plate', plate);
         load();
     }
