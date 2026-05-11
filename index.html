@@ -2,34 +2,43 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v10</title>
+    <title>Benny's Luxury Customs - Pro Management v35</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
-        .container { max-width: 1300px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
+        .container { max-width: 1450px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
         
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); }
-        .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); overflow-x: auto; }
+        .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; white-space: nowrap; }
         .tab-btn.active { color: var(--bennys-yellow); border-bottom: 4px solid var(--bennys-yellow); }
 
-        /* Schadens-System Layout */
-        .repair-layout { display: grid; grid-template-columns: 1fr 1fr 350px; gap: 20px; margin-bottom: 20px; }
-        .damage-grid { background: #000; padding: 20px; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .damage-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 8px 12px; border-radius: 4px; border: 1px solid #333; }
-        .damage-item input[type="checkbox"] { transform: scale(1.5); cursor: pointer; }
+        .repair-layout { display: grid; grid-template-columns: 320px 1fr 320px; gap: 20px; margin-bottom: 20px; }
         
-        .calc-box { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 2px solid var(--bennys-yellow); text-align: center; }
+        .damage-grid { background: #000; padding: 15px; border-radius: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .damage-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 6px 10px; border-radius: 4px; border: 1px solid #333; font-size: 0.85rem; }
+        .damage-item input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
+        
+        .calc-box { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 2px solid var(--bennys-yellow); text-align: center; height: fit-content; }
         .price-display { font-size: 2rem; font-weight: bold; color: #00ff00; margin: 10px 0; }
         .staff-display { font-size: 1.2rem; color: var(--bennys-yellow); }
 
-        .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
         input, select { padding: 10px; background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 5px; }
         
-        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; }
-        
         .hidden { display: none; }
-        .invoice-preview { background: #fff; color: #000; padding: 25px; font-family: monospace; border-radius: 5px; border: 2px dashed #000; }
+        .archive-card { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 1px solid #333; }
+        .archive-table { width: 100%; border-collapse: collapse; }
+        .archive-table th { text-align: left; background: #000; color: var(--bennys-yellow); padding: 12px; border-bottom: 2px solid #333; font-size: 0.8rem; }
+        .archive-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 0.9rem; }
+
+        /* KORRIGIERTES RECHNUNGS-DESIGN */
+        #invoiceText { background: white; color: black; padding: 30px; font-family: 'Courier New', monospace; border-radius: 5px; line-height: 1.2; white-space: pre; border: 2px solid #ccc; font-size: 13px; }
+        
+        .pickup-card { background: #000; padding: 15px; border-radius: 10px; border-left: 5px solid var(--bennys-yellow); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; }
+        button.danger-btn { background: #ff4444; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; width: 100%; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -39,174 +48,636 @@
 
     <div class="tabs">
         <button id="t-workshop" class="tab-btn active" onclick="showTab('workshop')">🛠️ Reparatursystem</button>
+        <button id="t-members" class="tab-btn" onclick="showTab('members')">💎 Mitglieder</button>
         <button id="t-pickup" class="tab-btn" onclick="showTab('pickup')">📋 Abholungen</button>
         <button id="t-database" class="tab-btn" onclick="showTab('database')">📂 Archiv</button>
+        <button id="t-fraktion" class="tab-btn" onclick="showTab('fraktion')">🚔 Sammelrechnung</button>
         <button id="t-invoice" class="tab-btn" onclick="showTab('invoice')">🧾 Rechnung</button>
     </div>
 
     <div id="workshopSection">
         <div class="repair-layout">
             <div class="info-pane">
-                <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate"></div>
-                <div class="input-group"><label>Modell</label><input type="text" id="p_model"></div>
-                <div class="input-group"><label>Besitzer</label><input type="text" id="p_owner"></div>
-                <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic"></div>
+                <div class="input-group"><label>Modell</label><input type="text" id="p_model" list="vehicleList" oninput="updateVehiclePrices()" placeholder="Modell..."></div>
+                <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate" placeholder="AB-123"></div>
+                <div class="input-group"><label>Besitzer (Name)</label><input type="text" id="p_owner" oninput="checkAutoMember()" placeholder="Kundenname"></div>
+                <div class="input-group"><label>Geplante Abholung</label><input type="datetime-local" id="p_pickup_date"></div>
+                <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic" placeholder="Dein Name"></div>
                 <div class="input-group"><label>Mitgliedschaft</label>
                     <select id="p_member" onchange="calculatePrice()">
-                        <option value="Keine">Keine</option>
-                        <option value="Bronze">Bronze (-5%)</option>
-                        <option value="Silber">Silber (-10%)</option>
-                        <option value="Gold">Gold (-15%)</option>
+                        <option value="Keine">Kein Rabatt (0%)</option>
+                        <option value="Basic">Basic (10%)</option>
+                        <option value="Premium">Premium (25%)</option>
+                        <option value="Business">Business (50%)</option>
                     </select>
                 </div>
             </div>
 
             <div class="damage-grid" id="damageList">
-                <div class="damage-item">Ausbeulen ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item">Motorhaube ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item">Frontstange ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item">Heckscheibe ($280) <input type="checkbox" value="280" onchange="calculatePrice()"></div>
-                <div class="damage-item">Seitenscheibe L ($280) <input type="checkbox" value="280" onchange="calculatePrice()"></div>
-                <div class="damage-item">Seitenscheibe R ($280) <input type="checkbox" value="280" onchange="calculatePrice()"></div>
-                <div class="damage-item">Heckstoßstange ($200) <input type="checkbox" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item">Scheinwerfer L ($150) <input type="checkbox" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item">Scheinwerfer R ($150) <input type="checkbox" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item">Abschleppen ($500) <input type="checkbox" value="500" onchange="calculatePrice()"></div>
-                <div class="damage-item">Anfahrt LS ($500) <input type="checkbox" value="500" onchange="calculatePrice()"></div>
-                <div class="damage-item">Anfahrt Sandy ($750) <input type="checkbox" value="750" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Ausbeulen ($<small id="p_ausbeulen">200</small>)</span> <input type="checkbox" data-key="ausbeulen" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Motorhaube ($<small id="p_motorhaube">200</small>)</span> <input type="checkbox" data-key="motorhaube" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Lackschaden ($<small id="p_lack">150</small>)</span> <input type="checkbox" data-key="lack" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Frontstange ($<small id="p_frontstange">200</small>)</span> <input type="checkbox" data-key="frontstange" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Frontscheibe ($<small id="p_frontscheibe">250</small>)</span> <input type="checkbox" data-key="frontscheibe" value="250" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Scheinwerfer L ($<small id="p_scheinwerfer_l">150</small>)</span> <input type="checkbox" data-key="scheinwerfer_l" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Scheinwerfer R ($<small id="p_scheinwerfer_r">150</small>)</span> <input type="checkbox" data-key="scheinwerfer_r" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Vorder Rad L ($<small id="p_rad_vl">300</small>)</span> <input type="checkbox" data-key="rad_vl" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Vorder Rad R ($<small id="p_rad_vr">300</small>)</span> <input type="checkbox" data-key="rad_vr" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Hinterrad L ($<small id="p_rad_hl">300</small>)</span> <input type="checkbox" data-key="rad_hl" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Hinterrad R ($<small id="p_rad_hr">300</small>)</span> <input type="checkbox" data-key="rad_hr" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür Vorne L ($<small id="p_tuer_vl">400</small>)</span> <input type="checkbox" data-key="tuer_vl" value="400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür Vorne R ($<small id="p_tuer_vr">400</small>)</span> <input type="checkbox" data-key="tuer_vr" value="400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür Hinten L ($<small id="p_tuer_hl">400</small>)</span> <input type="checkbox" data-key="tuer_hl" value="400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür Hinten R ($<small id="p_tuer_hr">400</small>)</span> <input type="checkbox" data-key="tuer_hr" value="400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenglas ($<small id="p_seiten_glas">500</small>)</span> <input type="checkbox" data-key="seiten_glas" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Heckscheibe ($<small id="p_heckscheibe">280</small>)</span> <input type="checkbox" data-key="heckscheibe" value="280" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Heckstange ($<small id="p_heckstange">200</small>)</span> <input type="checkbox" data-key="heckstange" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Kofferraum ($<small id="p_kofferraum">300</small>)</span> <input type="checkbox" data-key="kofferraum" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Rücklicht L ($<small id="p_ruecklicht_l">150</small>)</span> <input type="checkbox" data-key="ruecklicht_l" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Rücklicht R ($<small id="p_ruecklicht_r">150</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
             </div>
 
             <div class="calc-box">
-                <label>Rechnung an Kunden</label>
-                <div class="price-display" id="totalDisplay">$0.00</div>
-                <hr style="border: 1px solid #333">
-                <label>Mitarbeiter Provision (50%)</label>
-                <div class="staff-display" id="staffDisplay">$0.00</div>
-                <div class="input-group" style="margin-top:20px;">
-                    <label>Abholzeit</label>
-                    <input type="text" id="p_pickup" placeholder="z.B. 20:00 Uhr">
-                </div>
-                <button class="action-btn" onclick="submitRepair()">Speichern & Abschließen</button>
+                <div class="price-display" id="totalDisplay">$0</div>
+                <div class="staff-display" id="staffDisplay">Prov: $0</div>
+                <button class="action-btn" style="margin-top:20px;" onclick="submitRepair()">Speichern & Rechnen</button>
             </div>
         </div>
     </div>
 
-    <div id="pickupSection" class="hidden"><div id="pickupList"></div></div>
+    <div id="pickupSection" class="hidden">
+        <h2 style="color:var(--bennys-yellow);">📋 Aktuelle Abholungen</h2>
+        <div id="pickupList"></div>
+    </div>
 
     <div id="databaseSection" class="hidden">
-        <table>
-            <thead><tr><th>Datum</th><th>KFZ</th><th>Kunde</th><th>Preis</th><th>Besuche</th></tr></thead>
-            <tbody id="mainTable"></tbody>
-        </table>
+        <input type="text" id="archiveSearch" style="width:100%; margin-bottom:15px;" placeholder="🔍 Archiv durchsuchen..." onkeyup="filterArchive()">
+        <div class="archive-card">
+            <table class="archive-table">
+                <thead><tr><th>Datum</th><th>KFZ</th><th>Besitzer</th><th>Preis</th><th>Besuche</th><th>Status</th></tr></thead>
+                <tbody id="mainTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="membersSection" class="hidden">
+        <div class="archive-card">
+            <h3>Kunden & Mitgliedschaften</h3>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="m_name" placeholder="Name">
+                <select id="m_status"><option value="Basic">Basic</option><option value="Premium">Premium</option><option value="Business">Business</option></select>
+                <button class="action-btn" onclick="saveMember()">Speichern</button>
+            </div>
+            <table class="archive-table"><thead><tr><th>Name</th><th>Status</th><th>Aktion</th></tr></thead><tbody id="memberTable"></tbody></table>
+        </div>
     </div>
 
     <div id="invoiceSection" class="hidden">
-        <div class="invoice-preview">
-            <pre id="invoiceText"></pre>
-            <button onclick="copyInvoice()" class="copy-btn">Rechnung kopieren</button>
+        <div class="archive-card" style="background: #333;">
+            <button class="action-btn" style="margin-bottom:15px;" onclick="copyInvoice()">RECHNUNG KOPIEREN</button>
+            <div id="invoiceText">Noch keine Daten vorhanden.</div>
         </div>
     </div>
+    
+    <div id="fraktionSection" class="hidden"><div id="groupResult"></div></div>
 </div>
+
+<datalist id="vehicleList">
+    <datalist id="vehicleList">
+  <option value="Asbo">
+  <option value="Blista">
+  <option value="Brioso">
+  <option value="Club">
+  <option value="Dilettante">
+  <option value="Kanjo">
+  <option value="Issi">
+  <option value="Panto">
+  <option value="Prairie">
+  <option value="Rhapsody">
+  <option value="Issi Classic">
+
+  <option value="Cogcabrio">
+  <option value="Exemplar">
+  <option value="F620">
+  <option value="Felon">
+  <option value="Jackal">
+  <option value="Oracle">
+  <option value="Sentinel">
+  <option value="Windsor">
+  <option value="Zion">
+
+  <option value="Asea">
+  <option value="Fugitive">
+  <option value="Glendale">
+  <option value="Ingot">
+  <option value="Intruder">
+  <option value="Premier">
+  <option value="Primo">
+  <option value="Stanier">
+  <option value="Stratum">
+  <option value="Tailgater">
+  <option value="Warrener">
+  <option value="Washington">
+
+  <option value="Baller">
+  <option value="Baller2">
+  <option value="Baller3">
+  <option value="Baller4">
+  <option value="Baller5">
+  <option value="Baller6">
+  <option value="Baller7">
+  <option value="Baller8">
+  <option value="Baller9">
+  <option value="Baller10">
+  <option value="BeeJay">
+  <option value="Cavalcade">
+  <option value="Dubsta">
+  <option value="Dubsta2">
+  <option value="Dubsta3">
+  <option value="FQ2">
+  <option value="Granger">
+  <option value="Gresley">
+  <option value="Habanero">
+  <option value="Huntley">
+  <option value="Landstalker">
+  <option value="Mesa">
+  <option value="Patriot">
+  <option value="Radius">
+  <option value="Rocoto">
+  <option value="Seminole">
+  <option value="Serrano">
+  <option value="XLS">
+
+  <option value="Alpha">
+  <option value="Banshee">
+  <option value="Bestiagts">
+  <option value="Buffalo">
+  <option value="Carbonizzare">
+  <option value="Comet2">
+  <option value="Coquette">
+  <option value="Elegy">
+  <option value="Feltzer2">
+  <option value="Fusilade">
+  <option value="Furoregt">
+  <option value="Jackal">
+  <option value="Kuruma">
+  <option value="Massacro">
+  <option value="Ninef">
+  <option value="Penumbra">
+  <option value="Rapidgt">
+  <option value="Schwartzer">
+  <option value="Seven70">
+  <option value="Specter">
+  <option value="Streiter">
+  <option value="Surano">
+  <option value="Verlierer2">
+
+  <option value="Adder">
+  <option value="Autarch">
+  <option value="Bullet">
+  <option value="Cheetah">
+  <option value="Cyclone">
+  <option value="Entityxf">
+  <option value="Fm1">
+  <option value="Gp1">
+  <option value="Infernus">
+  <option value="Italigtb">
+  <option value="Nero">
+  <option value="Osiris">
+  <option value="Penetrator">
+  <option value="Reaper">
+  <option value="Sultanrs">
+  <option value="Superd">
+  <option value="T20">
+  <option value="Tempesta">
+  <option value="Turismo2">
+  <option value="Turismort">
+  <option value="Vacca">
+  <option value="Vagner">
+  <option value="Voltic">
+  <option value="Zentorno">
+
+  <option value="Blade">
+  <option value="Buccaneer">
+  <option value="Dominator">
+  <option value="Dukes">
+  <option value="Faction">
+  <option value="Gauntlet">
+  <option value="Hermes">
+  <option value="Hotknife">
+  <option value="Nightshade">
+  <option value="Phoenix">
+  <option value="Picador">
+  <option value="Ruiner">
+  <option value="Sabregt">
+  <option value="Slamvan">
+  <option value="Stallion">
+  <option value="Tampa">
+  <option value="Tulip">
+  <option value="Vigero">
+  <option value="Virgo">
+  <option value="Yosemite">
+
+  <option value="Bfcup">
+  <option value="Bifta">
+  <option value="Blazer">
+  <option value="Brawler">
+  <option value="Dubsta 6x6">
+  <option value="Dune">
+  <option value="Duneloader">
+  <option value="Freecrawler">
+  <option value="Insurgent">
+  <option value="Kamacho">
+  <option value="Laredo">
+  <option value="Marshall">
+  <option value="Monster">
+  <option value="Rancherxl">
+  <option value="Rebel">
+  <option value="Riata">
+  <option value="Sandking">
+  <option value="Trophy Truck">
+
+  <option value="Akuma">
+  <option value="Avarus">
+  <option value="Bagger">
+  <option value="Bati">
+  <option value="Bf400">
+  <option value="Carbonrs">
+  <option value="Chimera">
+  <option value="Cliffhanger">
+  <option value="Daemon">
+  <option value="Defiler">
+  <option value="Diabolus">
+  <option value="Double">
+  <option value="Enduro">
+  <option value="Esskey">
+  <option value="Faggio">
+  <option value="Gargoyle">
+  <option value="Hakuchou">
+  <option value="Hexer">
+  <option value="Innovation">
+  <option value="Lectro">
+  <option value="Manchez">
+  <option value="Nemesis">
+  <option value="Nightblade">
+  <option value="Pcj">
+  <option value="Ratbike">
+  <option value="Ruffian">
+  <option value="Sanchez">
+  <option value="Sanctus">
+  <option value="Sovereign">
+  <option value="Thrust">
+  <option value="Vader">
+  <option value="Vindicator">
+  <option value="Vortex">
+  <option value="Wolfsbane">
+  <option value="Zombie">
+
+  <option value="Benson">
+  <option value="Boxville">
+  <option value="Mule">
+  <option value="Pounder">
+  <option value="Phantom">
+  <option value="Hauler">
+  <option value="Packer">
+
+  <option value="Burrito">
+  <option value="Gangburrito">
+  <option value="Minivan">
+  <option value="Moonbeam">
+  <option value="Paradise">
+  <option value="Pony">
+  <option value="Rumpo">
+  <option value="Speedo">
+  <option value="Surfer">
+  <option value="Youga">
+</datalist>
 
 <script>
     const SB_URL = "https://lfeppmyecdjjvnscfdug.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmZXBwbXllY2RqanZuc2NmZHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjAwNzksImV4cCI6MjA5NDAzNjA3OX0.SCJL7C9CkhLAhYWAS-dPP6c_ApSmBXvlHoxuBzKxNBU";
     const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
-    let dataCache = [];
-    let currentTotal = 0;
+    let dataCache = [], memberCache = [];
 
-    function calculatePrice() {
-        let base = 0;
-        const checks = document.querySelectorAll('#damageList input[type="checkbox"]:checked');
-        checks.forEach(c => base += parseFloat(c.value));
-        
-        const mType = document.getElementById('p_member').value;
-        let disc = 0;
-        if(mType==="Bronze") disc=0.05; if(mType==="Silber") disc=0.1; if(mType==="Gold") disc=0.15;
-        
-        currentTotal = base * (1 - disc);
-        document.getElementById('totalDisplay').innerText = "$" + currentTotal.toLocaleString();
-        document.getElementById('staffDisplay').innerText = "$" + (currentTotal * 0.5).toLocaleString();
-    }
+    const vehicleDatabase = {
+        // --- KOMPAKTWAGEN ---
+        "Asbo": { ausbeulen: 1500, motorhaube: 2000, lack: 750, frontstange: 6000, frontscheibe: 2500, scheinwerfer_l: 3000, scheinwerfer_r: 3000, rad_vl: 2000, rad_vr: 2000, rad_hl: 2000, rad_hr: 2000, tuer_vl: 5000, tuer_vr: 5000, tuer_hl: 5000, tuer_hr: 5000, seiten_glas: 2500, heckscheibe: 2500, heckstange: 6000, kofferraum: 4000, ruecklicht_l: 3000, ruecklicht_r: 3000 },
+        "Blista": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Brioso": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Club": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Dilettante": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Kanjo": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Issi": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Panto": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Prairie": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Rhapsody": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+        "Issi Classic": { ausbeulen: 150, motorhaube: 175, lack: 150, frontstange: 100, frontscheibe: 200, scheinwerfer_l: 50, scheinwerfer_r: 50, rad_vl: 150, rad_vr: 150, rad_hl: 150, rad_hr: 150, tuer_vl: 175, tuer_vr: 175, tuer_hl: 175, tuer_hr: 175, seiten_glas: 200, heckscheibe: 200, heckstange: 100, kofferraum: 200, ruecklicht_l: 50, ruecklicht_r: 50 },
+
+        // --- COUPÉS ---
+        "Cogcabrio": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Exemplar": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "F620": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Felon": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Jackal": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Oracle": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Sentinel": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Windsor": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+        "Zion": { ausbeulen: 250, motorhaube: 300, lack: 200, frontstange: 350, frontscheibe: 400, scheinwerfer_l: 180, scheinwerfer_r: 180, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 450, tuer_vr: 450, tuer_hl: 450, tuer_hr: 450, seiten_glas: 300, heckscheibe: 300, heckstange: 350, kofferraum: 400, ruecklicht_l: 180, ruecklicht_r: 180 },
+
+        // --- SEDANS / LIMOUSINEN ---
+        "Asea": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Fugitive": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Glendale": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Ingot": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Intruder": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Premier": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Primo": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Stanier": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Stratum": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Tailgater": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Warrener": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Washington": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+
+        // --- SUVs ---
+        "Baller": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller2": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller3": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller4": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller5": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller6": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller7": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller8": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller9": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Baller10": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "BeeJay": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Cavalcade": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Dubsta": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Dubsta2": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Dubsta3": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "FQ2": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Granger": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Gresley": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Habanero": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Huntley": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Landstalker": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Radius": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Rocoto": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Seminole": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "Serrano": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+        "XLS": { ausbeulen: 300, motorhaube: 400, lack: 250, frontstange: 450, frontscheibe: 500, scheinwerfer_l: 250, scheinwerfer_r: 250, rad_vl: 450, rad_vr: 450, rad_hl: 450, rad_hr: 450, tuer_vl: 600, tuer_vr: 600, tuer_hl: 600, tuer_hr: 600, seiten_glas: 450, heckscheibe: 450, heckstange: 450, kofferraum: 500, ruecklicht_l: 250, ruecklicht_r: 250 },
+
+        // --- SPORT ---
+        "Alpha": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Banshee": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Bestiagts": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Buffalo": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Buffalo2": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Buffalo3": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Carbonizzare": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Comet2": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Coquette": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Elegy": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Feltzer2": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Furoregt": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Fusilade": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Jester": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Khamelion": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Kuruma": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Massacro": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Ninef": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Omnis": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Pariah": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Rapidgt": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Schwarzer": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Seven70": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Specter": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Surano": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Tropos": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+        "Verlierer2": { ausbeulen: 350, motorhaube: 450, lack: 300, frontstange: 500, frontscheibe: 550, scheinwerfer_l: 300, scheinwerfer_r: 300, rad_vl: 500, rad_vr: 500, rad_hl: 500, rad_hr: 500, tuer_vl: 700, tuer_vr: 700, tuer_hl: 700, tuer_hr: 700, seiten_glas: 550, heckscheibe: 550, heckstange: 550, kofferraum: 600, ruecklicht_l: 300, ruecklicht_r: 300 },
+
+        // --- SUPER ---
+        "Adder": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Autarch": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Bullet": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Cheetah": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Cyclone": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Entityxf": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Furia": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Infernus": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Italigtb": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Krieger": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Nero": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Osiris": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "T20": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Tempesta": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Turismor": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Zentorno": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+        "Zorusso": { ausbeulen: 1000, motorhaube: 1500, lack: 800, frontstange: 2000, frontscheibe: 1200, scheinwerfer_l: 800, scheinwerfer_r: 800, rad_vl: 1500, rad_vr: 1500, rad_hl: 1500, rad_hr: 1500, tuer_vl: 2500, tuer_vr: 2500, tuer_hl: 2500, tuer_hr: 2500, seiten_glas: 1000, heckscheibe: 1000, heckstange: 2000, kofferraum: 1800, ruecklicht_l: 800, ruecklicht_r: 800 },
+
+        // --- OFFROAD ---
+        "Bifta": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Blazer": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Brawler": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Dubs": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Dune": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Kamacho": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Mesa": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Monster": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Rancherxl": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Rebel": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Sandking": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+        "Trophy": { ausbeulen: 250, motorhaube: 300, lack: 150, frontstange: 250, frontscheibe: 200, scheinwerfer_l: 100, scheinwerfer_r: 100, rad_vl: 350, rad_vr: 350, rad_hl: 350, rad_hr: 350, tuer_vl: 300, tuer_vr: 300, tuer_hl: 300, tuer_hr: 300, seiten_glas: 250, heckscheibe: 250, heckstange: 250, kofferraum: 300, ruecklicht_l: 100, ruecklicht_r: 100 },
+
+        // --- MUSCLE ---
+        "Blade": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Buccaneer": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Dominator": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Dukes": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Gauntlet": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Phoenix": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Picador": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Ruiner": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Sabregt": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Stallion": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Tampa": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+        "Vigero": { ausbeulen: 300, motorhaube: 350, lack: 200, frontstange: 300, frontscheibe: 300, scheinwerfer_l: 200, scheinwerfer_r: 200, rad_vl: 400, rad_vr: 400, rad_hl: 400, rad_hr: 400, tuer_vl: 500, tuer_vr: 500, tuer_hl: 500, tuer_hr: 500, seiten_glas: 350, heckscheibe: 350, heckstange: 300, kofferraum: 350, ruecklicht_l: 200, ruecklicht_r: 200 },
+
+        // --- VANS ---
+        "Bison": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Bobcatxl": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito2": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito3": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito4": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito5": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito6": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito7": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito8": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Burrito9": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Minivan": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Pony": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Rumpo": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Speedo": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Surfer": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+        "Youga": { ausbeulen: 200, motorhaube: 250, lack: 150, frontstange: 200, frontscheibe: 250, scheinwerfer_l: 150, scheinwerfer_r: 150, rad_vl: 300, rad_vr: 300, rad_hl: 300, rad_hr: 300, tuer_vl: 400, tuer_vr: 400, tuer_hl: 400, tuer_hr: 400, seiten_glas: 500, heckscheibe: 280, heckstange: 200, kofferraum: 300, ruecklicht_l: 150, ruecklicht_r: 150 },
+
+        // --- CYCLES & BIKES (MOTORRÄDER) ---
+        "Akuma": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Bagger": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Bati": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Bati2": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "BF400": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Carbonrs": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Chimera": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Cliffhanger": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Daemon": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Daemon2": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Defiler": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Diabolus": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Diabolus2": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Double": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Enduro": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Esskey": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Faggio": { ausbeulen: 50, motorhaube: 0, lack: 50, frontstange: 50, frontscheibe: 50, scheinwerfer_l: 30, scheinwerfer_r: 0, rad_vl: 100, rad_vr: 0, rad_hl: 100, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 50, kofferraum: 0, ruecklicht_l: 30, ruecklicht_r: 0 },
+        "Faggio2": { ausbeulen: 50, motorhaube: 0, lack: 50, frontstange: 50, frontscheibe: 50, scheinwerfer_l: 30, scheinwerfer_r: 0, rad_vl: 100, rad_vr: 0, rad_hl: 100, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 50, kofferraum: 0, ruecklicht_l: 30, ruecklicht_r: 0 },
+        "Faggio3": { ausbeulen: 50, motorhaube: 0, lack: 50, frontstange: 50, frontscheibe: 50, scheinwerfer_l: 30, scheinwerfer_r: 0, rad_vl: 100, rad_vr: 0, rad_hl: 100, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 50, kofferraum: 0, ruecklicht_l: 30, ruecklicht_r: 0 },
+        "Fcr": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Fcr2": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Gargoyle": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Hakuchou": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Hakuchou2": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Innovation": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Lectro": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Manchez": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Nightblade": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Pcj": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Ruffian": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Sanchez": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Sanchez2": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Sanctus": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Shitzuhakuchoudrag": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Sovereign": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Thrust": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Vader": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Vindicator": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Vortex": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Wolfsbane": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 },
+        "Zombie": { ausbeulen: 100, motorhaube: 0, lack: 100, frontstange: 100, frontscheibe: 150, scheinwerfer_l: 80, scheinwerfer_r: 0, rad_vl: 200, rad_vr: 0, rad_hl: 200, rad_hr: 0, tuer_vl: 0, tuer_vr: 0, tuer_hl: 0, tuer_hr: 0, seiten_glas: 0, heckscheibe: 0, heckstange: 100, kofferraum: 0, ruecklicht_l: 80, ruecklicht_r: 0 }
+    };
 
     async function load() {
-        const { data } = await _supabase.from('Cars').select('*').order('last_repair_date', { ascending: false });
-        dataCache = data || [];
-        renderAll();
-    }
-
-    function showTab(t) {
-        ['workshop','pickup','database','invoice'].forEach(s => document.getElementById(s+'Section').classList.add('hidden'));
-        document.getElementById(t+'Section').classList.remove('hidden');
-        ['t-workshop','t-pickup','t-database','t-invoice'].forEach(b => document.getElementById(b).classList.remove('active'));
-        document.getElementById('t-'+t).classList.add('active');
+        const r1 = await _supabase.from('Cars').select('*').order('last_repair_date', { ascending: false });
+        dataCache = r1.data || [];
+        const r2 = await _supabase.from('Members').select('*');
+        memberCache = r2.data || [];
+        renderArchive(); renderPickups(); renderMembers();
     }
 
     async function submitRepair() {
-        const plate = document.getElementById('p_plate').value.toUpperCase();
+        const plate = document.getElementById('p_plate').value.toUpperCase().trim();
+        const pickupDate = document.getElementById('p_pickup_date').value;
         if(!plate) return alert("Kennzeichen fehlt!");
-        
         const old = dataCache.find(c => c.plate === plate);
-        const { error } = await _supabase.from('Cars').upsert({
-            plate: plate,
-            model: document.getElementById('p_model').value,
-            owner: document.getElementById('p_owner').value,
-            mechanic: document.getElementById('p_mechanic').value,
-            cost: currentTotal + "$",
-            pickup_time: new Date().toLocaleDateString() + " - " + document.getElementById('p_pickup').value,
-            last_repair_date: new Date().toLocaleString(),
-            visits: old ? (old.visits + 1) : 1
-        }, { onConflict: 'plate' });
+        await _supabase.from('Cars').upsert({
+            plate: plate, model: document.getElementById('p_model').value, owner: document.getElementById('p_owner').value,
+            mechanic: document.getElementById('p_mechanic').value, cost: document.getElementById('totalDisplay').innerText,
+            last_repair_date: new Date().toISOString(), pickup_info: pickupDate || null, visits: old ? (old.visits + 1) : 1
+        });
+        load(); showTab('invoice');
+    }
 
-        if(!error) {
-            createInvoice(plate);
-            load();
-            showTab('invoice');
+    async function markAsPickedUp(plate) {
+        if(confirm("Fahrzeug wurde abgeholt?")) {
+            await _supabase.from('Cars').update({ pickup_info: null }).eq('plate', plate);
+            load(); 
         }
     }
 
-    function createInvoice(plate) {
-        document.getElementById('invoiceText').innerText = `
-====================================
-    BENNY'S ORIGINAL MOTORWORKS
-====================================
-KFZ:        ${plate}
-KUNDE:      ${document.getElementById('p_owner').value}
-MECHANIKER: ${document.getElementById('p_mechanic').value}
-------------------------------------
-GESAMTSUMME: $${currentTotal.toFixed(2)}
-RABATT:      ${document.getElementById('p_member').value}
-------------------------------------
-PROVISION:   $${(currentTotal * 0.5).toFixed(2)}
-====================================`;
+    function calculatePrice() {
+        let base = 0; let items = [];
+        document.querySelectorAll('#damageList input:checked').forEach(c => {
+            let p = parseFloat(c.value); base += p;
+            items.push({ name: c.parentElement.innerText.split('(')[0].trim(), price: p });
+        });
+        const m = document.getElementById('p_member').value;
+        let d = m==="Basic"?10:m==="Premium"?25:m==="Business"?50:0;
+        let total = Math.round(base * (1 - (d/100)));
+        document.getElementById('totalDisplay').innerText = "$" + total.toLocaleString('de-DE');
+        document.getElementById('staffDisplay').innerText = "Prov: $" + Math.round(total * 0.5).toLocaleString('de-DE');
+        generateInvoice(items, base, d, total);
     }
 
-    function renderAll() {
-        const b = document.getElementById('mainTable');
-        b.innerHTML = '';
-        dataCache.forEach(c => {
-            b.innerHTML += `<tr><td>${c.last_repair_date}</td><td>${c.plate}</td><td>${c.owner}</td><td>${c.cost}</td><td>${c.visits}x</td></tr>`;
-        });
+    function generateInvoice(items, base, d, total) {
+        const p = document.getElementById('p_plate').value || "---";
+        const o = document.getElementById('p_owner').value || "---";
+        const date = new Date().toLocaleString('de-DE');
+        const rabattSumme = Math.round(base * (d/100));
+        let lines = items.map(i => `${i.name.padEnd(25)} $${i.price.toLocaleString('de-DE').padStart(10)}`).join('\n');
         
-        const pu = document.getElementById('pickupList');
-        pu.innerHTML = '';
-        dataCache.forEach(c => {
-            if(c.pickup_time && !c.pickup_time.includes("Abgeholt")) {
-                pu.innerHTML += `<div style="background:#000; padding:15px; margin-bottom:10px; border-left:5px solid #ffcc00;">
-                    <b>${c.plate}</b> - ${c.pickup_time} <button onclick="markDone('${c.plate}')">Abgeholt</button>
-                </div>`;
+        document.getElementById('invoiceText').innerText = 
+            `********************************************\n` +
+            `         BENNY'S ORIGINAL MOTORWORKS        \n` +
+            `********************************************\n` +
+            `DATUM:    ${date}\nKUNDE:    ${o}\nKFZ:      ${p}\n` +
+            `--------------------------------------------\n` +
+            `${lines}\n` +
+            `--------------------------------------------\n` +
+            `ZWISCHENSUMME:            $${base.toLocaleString('de-DE').padStart(10)}\n` +
+            `RABATT (${d}%):           -$${rabattSumme.toLocaleString('de-DE').padStart(10)}\n` +
+            `--------------------------------------------\n` +
+            `GESAMTBETRAG:             $${total.toLocaleString('de-DE').padStart(10)}\n` +
+            `********************************************`;
+    }
+
+    function renderPickups() {
+        const list = dataCache.filter(c => c.pickup_info);
+        document.getElementById('pickupList').innerHTML = list.map(c => `
+            <div class="pickup-card">
+                <div><b>${c.plate}</b> | ${c.owner}<br><small>Abholung: ${new Date(c.pickup_info).toLocaleString()}</small></div>
+                <button onclick="markAsPickedUp('${c.plate}')" style="background:#00ff00; border:none; padding:10px; cursor:pointer; font-weight:bold; border-radius:5px;">ABGEHOLT</button>
+            </div>
+        `).join('');
+    }
+
+    function renderArchive() {
+        document.getElementById('mainTable').innerHTML = dataCache.map(c => `
+            <tr>
+                <td>${new Date(c.last_repair_date).toLocaleDateString()}</td>
+                <td><b>${c.plate}</b></td>
+                <td>${c.owner || '-'}</td>
+                <td>${c.cost}</td>
+                <td>${c.visits}x</td>
+                <td>${c.pickup_info ? '⏳ Wartet' : '✅ Fertig'}</td>
+            </tr>
+        `).join('');
+    }
+
+    function checkAutoMember() {
+        const n = document.getElementById('p_owner').value.toLowerCase().trim();
+        const m = memberCache.find(x => x.plate.toLowerCase() === n);
+        document.getElementById('p_member').value = m ? m.status : "Keine";
+        calculatePrice();
+    }
+
+    function updateVehiclePrices() {
+        const model = document.getElementById('p_model').value;
+        if (vehicleDatabase[model]) {
+            for (let k in vehicleDatabase[model]) {
+                const el = document.getElementById('p_'+k); if(el) el.innerText = vehicleDatabase[model][k];
+                const cb = document.querySelector(`input[data-key="${k}"]`); if(cb) cb.value = vehicleDatabase[model][k];
             }
-        });
+        }
+        calculatePrice();
     }
 
-    async function markDone(p) {
-        await _supabase.from('Cars').update({ pickup_time: 'Abgeholt' }).eq('plate', p);
-        load();
-    }
-
-    function copyInvoice() {
-        navigator.clipboard.writeText(document.getElementById('invoiceText').innerText);
-        alert("Kopiert!");
+    async function saveMember() { await _supabase.from('Members').upsert({ plate: document.getElementById('m_name').value, status: document.getElementById('m_status').value }); load(); }
+    function renderMembers() { document.getElementById('memberTable').innerHTML = memberCache.map(m => `<tr><td>${m.plate}</td><td>${m.status}</td><td><button onclick="deleteMember('${m.plate}')">X</button></td></tr>`).join(''); }
+    async function deleteMember(n) { await _supabase.from('Members').delete().eq('plate', n); load(); }
+    function showTab(t) { ['workshop','members','pickup','database','fraktion','invoice'].forEach(s => document.getElementById(s+'Section').classList.add('hidden')); document.getElementById(t+'Section').classList.remove('hidden'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); }
+    function copyInvoice() { navigator.clipboard.writeText(document.getElementById('invoiceText').innerText).then(() => alert("Kopiert!")); }
+    function filterArchive() {
+        const term = document.getElementById('archiveSearch').value.toLowerCase();
+        renderArchive(dataCache.filter(c => c.plate.toLowerCase().includes(term) || (c.owner && c.owner.toLowerCase().includes(term))));
     }
 
     load();
