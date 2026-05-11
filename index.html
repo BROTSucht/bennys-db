@@ -2,41 +2,43 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Full Management</title>
+    <title>Benny's Luxury Customs - Full Management v9</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
+        .container { max-width: 1200px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); }
-        .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
         .tab-btn.active { color: var(--bennys-yellow); border-bottom: 4px solid var(--bennys-yellow); }
 
-        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #000; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #000; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
         .input-group { display: flex; flex-direction: column; gap: 5px; }
-        label { color: var(--bennys-yellow); font-size: 0.8rem; font-weight: bold; }
+        label { color: var(--bennys-yellow); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
         input, select { padding: 10px; background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 5px; }
         
-        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; grid-column: 1 / -1; margin-top: 10px; }
+        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; grid-column: 1 / -1; margin-top: 10px; text-transform: uppercase; }
+        button.action-btn:hover { background: white; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th { text-align: left; color: var(--bennys-yellow); padding: 12px; border-bottom: 2px solid #333; font-size: 0.8rem; }
         td { padding: 12px; border-bottom: 1px solid #333; }
 
-        .pickup-card { background: #000; border-left: 5px solid var(--bennys-yellow); padding: 15px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .pickup-time { color: var(--bennys-yellow); font-weight: bold; font-size: 1.2rem; }
+        .pickup-card { background: #000; border-left: 5px solid var(--bennys-yellow); padding: 20px; margin-bottom: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .pickup-info b { color: var(--bennys-yellow); font-size: 1.1rem; }
+        .pickup-time-display { text-align: right; }
+        .time-badge { background: var(--bennys-yellow); color: black; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 1.1rem; display: block; margin-bottom: 5px; }
         
-        .tag { padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
         .hidden { display: none; }
-        .invoice-preview { background: #fff; color: #000; padding: 20px; font-family: monospace; border-radius: 5px; border: 2px dashed #333; }
-        .copy-btn { background: #333; color: white; border: none; padding: 10px; margin-top: 10px; cursor: pointer; border-radius: 4px; }
+        .invoice-preview { background: #fff; color: #000; padding: 25px; font-family: monospace; border-radius: 5px; border: 2px dashed #333; line-height: 1.2; }
+        .copy-btn { background: #333; color: white; border: none; padding: 10px 20px; margin-top: 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Benny's Original Motorworks</h1>
+    <h1 style="text-align:center; color:var(--bennys-yellow); text-transform:uppercase; letter-spacing:2px;">Benny's Original Motorworks</h1>
 
     <div class="tabs">
         <button id="t-workshop" class="tab-btn active" onclick="showTab('workshop')">🛠️ Werkstatt</button>
@@ -47,13 +49,13 @@
 
     <div id="workshopSection">
         <div class="input-grid">
-            <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate"></div>
-            <div class="input-group"><label>Modell</label><input type="text" id="p_model"></div>
-            <div class="input-group"><label>Kundenname</label><input type="text" id="p_owner"></div>
-            <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic"></div>
-            <div class="input-group"><label>Arbeit</label><input type="text" id="p_repairs"></div>
-            <div class="input-group"><label>Kosten $ (Netto)</label><input type="number" id="p_cost"></div>
-            <div class="input-group"><label>Abholbereit am/um</label><input type="text" id="p_pickup" placeholder="z.B. Heute 20 Uhr"></div>
+            <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate" placeholder="z.B. B-69"></div>
+            <div class="input-group"><label>Modell</label><input type="text" id="p_model" placeholder="z.B. Banshee"></div>
+            <div class="input-group"><label>Kundenname</label><input type="text" id="p_owner" placeholder="Vorname_Nachname"></div>
+            <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic" placeholder="Dein Name"></div>
+            <div class="input-group"><label>Arbeit</label><input type="text" id="p_repairs" placeholder="Was wurde gemacht?"></div>
+            <div class="input-group"><label>Kosten $</label><input type="number" id="p_cost"></div>
+            <div class="input-group"><label>Abholzeit (Uhrzeit)</label><input type="text" id="p_pickup" placeholder="z.B. 18:30"></div>
             <div class="input-group">
                 <label>Mitgliedschaft</label>
                 <select id="p_member">
@@ -63,12 +65,12 @@
                     <option value="Gold">Gold (15%)</option>
                 </select>
             </div>
-            <button class="action-btn" onclick="submitRepair()">Auftrag speichern & Rechnung erstellen</button>
+            <button class="action-btn" onclick="submitRepair()">Auftrag speichern & Zeit stempeln</button>
         </div>
     </div>
 
     <div id="pickupSection" class="hidden">
-        <h3>Fahrzeuge in Bearbeitung</h3>
+        <h2 style="color:var(--bennys-yellow)">Aktuelle Aufträge / Abholbereit</h2>
         <div id="pickupList"></div>
     </div>
 
@@ -84,7 +86,7 @@
     <div id="invoiceSection" class="hidden">
         <div id="invoiceBox" class="invoice-preview" style="display:none;">
             <pre id="invoiceText"></pre>
-            <button class="copy-btn" onclick="copyInvoice()">📋 Rechnung kopieren</button>
+            <button class="copy-btn" onclick="copyInvoice()">📋 In Zwischenablage kopieren</button>
         </div>
     </div>
 </div>
@@ -102,28 +104,23 @@
     }
 
     function showTab(tabName) {
-        // Sektionen umschalten
-        const sections = ['workshopSection', 'pickupSection', 'databaseSection', 'invoiceSection'];
-        sections.forEach(s => {
-            document.getElementById(s).classList.add('hidden');
-        });
+        ['workshopSection', 'pickupSection', 'databaseSection', 'invoiceSection'].forEach(s => document.getElementById(s).classList.add('hidden'));
         document.getElementById(tabName + 'Section').classList.remove('hidden');
-
-        // Buttons umschalten
-        const buttons = ['t-workshop', 't-pickup', 't-database', 't-invoice'];
-        buttons.forEach(b => {
-            document.getElementById(b).classList.remove('active');
-        });
+        ['t-workshop', 't-pickup', 't-database', 't-invoice'].forEach(b => document.getElementById(b).classList.remove('active'));
         document.getElementById('t-' + tabName).classList.add('active');
     }
 
     async function submitRepair() {
         const plate = document.getElementById('p_plate').value.toUpperCase();
         const costStr = document.getElementById('p_cost').value;
-        const pickup = document.getElementById('p_pickup').value || "Sofort";
+        const pickupInput = document.getElementById('p_pickup').value || "Sofort";
         
         if(!plate || !costStr) return alert("Kennzeichen und Kosten fehlen!");
-        
+
+        // DATUM AUTOMATISCH HINZUFÜGEN
+        const today = new Date().toLocaleDateString('de-DE');
+        const fullPickupTime = today + " - " + pickupInput;
+
         const cost = parseFloat(costStr);
         const old = dataCache.find(c => c.plate === plate);
 
@@ -135,7 +132,7 @@
             repairs_done: document.getElementById('p_repairs').value,
             cost: cost + "$",
             has_membership: document.getElementById('p_member').value,
-            pickup_time: pickup,
+            pickup_time: fullPickupTime, // Hier ist das Datum jetzt drin
             last_repair_date: new Date().toLocaleString('de-DE'),
             visits: old ? (old.visits + 1) : 1
         }, { onConflict: 'plate' });
@@ -156,13 +153,13 @@
             if(c.pickup_time && c.pickup_time !== "Abgeholt") {
                 puList.innerHTML += `
                     <div class="pickup-card">
-                        <div>
-                            <strong>${c.plate}</strong> (${c.model})<br>
-                            <small>Besitzer: ${c.owner} | Mechaniker: ${c.mechanic}</small>
+                        <div class="pickup-info">
+                            <b>${c.plate}</b> | ${c.model}<br>
+                            <span style="color:#888; font-size:0.9rem;">Kunde: ${c.owner} | Mechaniker: ${c.mechanic}</span>
                         </div>
-                        <div style="text-align:right">
-                            <div class="pickup-time">${c.pickup_time}</div>
-                            <button onclick="markAsPickedUp('${c.plate}')" style="cursor:pointer;">✅ Abgeholt</button>
+                        <div class="pickup-time-display">
+                            <span class="time-badge">${c.pickup_time}</span>
+                            <button onclick="markAsPickedUp('${c.plate}')" style="cursor:pointer; background:#222; color:white; border:1px solid #444; padding:5px 10px; border-radius:4px;">✅ Abgeholt</button>
                         </div>
                     </div>`;
             }
@@ -177,7 +174,7 @@
                 <td>${c.owner}</td>
                 <td>${c.repairs_done}</td>
                 <td>${c.cost}</td>
-                <td>${c.visits}x</td>
+                <td align="center">${c.visits}x</td>
             </tr>`;
         });
     }
@@ -192,7 +189,6 @@
         const owner = document.getElementById('p_owner').value;
         const mech = document.getElementById('p_mechanic').value;
         const work = document.getElementById('p_repairs').value;
-        
         let disc = 0;
         if(mType==="Bronze") disc=0.05; if(mType==="Silber") disc=0.1; if(mType==="Gold") disc=0.15;
         const total = (cost * (1 - disc)).toFixed(2);
@@ -204,8 +200,8 @@
 KUNDE:      ${owner}
 KFZ:        ${plate}
 MECHANIKER: ${mech}
-ARBEIT:     ${work}
 ------------------------------------
+LEISTUNG:   ${work}
 NETTO:      ${cost.toFixed(2)}$
 RABATT:     ${mType} (-${disc*100}%)
 ------------------------------------
@@ -216,10 +212,10 @@ TOTAL:      ${total}$
 
     function copyInvoice() {
         navigator.clipboard.writeText(document.getElementById('invoiceText').innerText);
-        alert("Rechnung kopiert!");
+        alert("Rechnung für den Chat kopiert!");
     }
 
-    setInterval(load, 20000);
+    setInterval(load, 15000);
     load();
 </script>
 </body>
