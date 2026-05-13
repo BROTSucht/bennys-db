@@ -19,6 +19,8 @@
         .damage-grid { background: #000; padding: 15px; border-radius: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-content: start; }
         .damage-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 8px 12px; border-radius: 4px; border: 1px solid #333; font-size: 0.85rem; }
         .damage-item input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
+        .damage-item .qty-wrap { display:flex; align-items:center; gap:8px; }
+        .damage-item input[type="number"] { width: 74px; padding: 6px 8px; }
         
         .calc-box { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 2px solid var(--bennys-yellow); text-align: center; position: sticky; top: 20px; }
         .price-display { font-size: 2.2rem; font-weight: bold; color: #00ff00; margin: 10px 0; }
@@ -64,6 +66,7 @@
         <button id="t-customers" class="tab-btn" onclick="showTab('customers')">👥 Kunden</button>
         <button id="t-members" class="tab-btn" onclick="showTab('members')">💎 VIP</button>
         <button id="t-pickup" class="tab-btn" onclick="showTab('pickup')">📋 Abholungen</button>
+        <button id="t-leihwagen" class="tab-btn" onclick="showTab('leihwagen')">🚙 Leihwagen</button>
         <button id="t-database" class="tab-btn" onclick="showTab('database')">📂 Archiv</button>
         <button id="t-fraktion" class="tab-btn" onclick="showTab('fraktion')">👮 Fraktion</button>
         <button id="t-invoice" class="tab-btn" onclick="showTab('invoice')">🧾 Rechnung</button>
@@ -90,6 +93,11 @@
                     <select id="p_payment_when" onchange="calculatePrice()">
                         <option value="abholung">Bei Abholung zahlen</option>
                         <option value="vorher">Vorher zahlen (Vorkasse)</option>
+                    </select>
+                </div>
+                <div class="input-group"><label>Leihwagen</label>
+                    <select id="p_loaner" onchange="calculatePrice()">
+                        <option value="">— keiner —</option>
                     </select>
                 </div>
                 <button class="danger-btn" onclick="submitToImpound()">Ins Impound schicken</button>
@@ -137,10 +145,15 @@
                 <div class="damage-item"><span>Reifenpanne ($<small id="p_reifenpanne">250</small>)</span> <input type="checkbox" data-key="reifenpanne" value="250" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Starthilfe ($<small id="p_starthilfe">250</small>)</span> <input type="checkbox" data-key="starthilfe" value="250" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Tank Leer ($<small id="p_tank_leer">350</small>)</span> <input type="checkbox" data-key="tank_leer" value="350" onchange="calculatePrice()"></div>
+                <div class="damage-item">
+                    <span>Fahrzeugüberführung ($<small id="p_fahrzeugueberfuehrung_unit">500</small> je)</span>
+                    <span class="qty-wrap">
+                        <input type="number" id="p_fahrzeugueberfuehrung_qty" min="0" step="1" value="0" oninput="calculatePrice()" onchange="calculatePrice()">
+                    </span>
+                </div>
                 <div class="damage-item"><span>Verwahrk./Tag ($<small id="p_verwahrkosten_pro_tag">25</small>)</span> <input type="checkbox" data-key="verwahrkosten_pro_tag" value="25" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Nachtzuschlag ($<small id="p_nachtzuschlag">100</small>)</span> <input type="checkbox" data-key="nachtzuschlag" value="100" onchange="calculatePrice()"></div>
                 <div class="damage-item"><span>Reinigung ($<small id="p_reinigung">100</small>)</span> <input type="checkbox" data-key="reinigung" value="100" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Fahrzeugüberführung ($<small id="p_fahrzeugüberführung">250</small>)</span> <input type="checkbox" data-key="fahrzeugüberführung" value="250" onchange="calculatePrice()"></div>
             </div>
 
             <div class="calc-box">
@@ -181,6 +194,31 @@
     <div id="pickupSection" class="hidden">
         <h3>📋 Autos fertig zur Abholung</h3>
         <div id="pickupList"></div>
+    </div>
+
+    <div id="leihwagenSection" class="hidden">
+        <div class="archive-card">
+            <h3>Leihwagen-Pool</h3>
+            <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Kennzeichen eindeutig (z. B. BENNY-LW1). In der Werkstatt unter „Leihwagen“ auswählbar.</p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr minmax(140px,1fr); gap:10px; align-items:end;">
+                <div class="input-group" style="margin-bottom:0;"><label>Kennzeichen</label><input type="text" id="lw_plate" placeholder="BENNY-LW1"></div>
+                <div class="input-group" style="margin-bottom:0;"><label>Fahrzeug / Modell</label><input type="text" id="lw_label" placeholder="Kurzbeschreibung"></div>
+                <div class="input-group" style="margin-bottom:0;"><label>Notiz</label><input type="text" id="lw_notes" placeholder="optional"></div>
+                <button type="button" class="action-btn" onclick="saveLoaner()">Hinzufügen</button>
+            </div>
+        </div>
+        <table class="archive-table" style="margin-top:20px;">
+            <thead>
+                <tr>
+                    <th>Kennzeichen</th>
+                    <th>Fahrzeug</th>
+                    <th>Aktueller Nutzer</th>
+                    <th>Notiz</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody id="loanerTable"></tbody>
+        </table>
     </div>
 
     <div id="databaseSection" class="hidden">
@@ -259,7 +297,11 @@
     const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
     
     let dataCache = [], memberCache = [], customerCache = [];
+    let loanerCache = [];
     let currentRepairItems = ""; // Speichert die aktuellen Posten als Text für die DB
+    let lastSubmittedPlate = null; // Wird für Debug-Logs genutzt (ob der gerade gespeicherte Eintrag in load() landet)
+    let _loanerCarsColumnName = null; // Spaltenname in Cars, in dem der Leihwagen gespeichert wird
+    let _loanerLabelColumnName = null; // Spaltenname in Leihwagen, in dem der Fahrzeugtyp/Label gespeichert wird
 
     /** Wenn die DB keine Spalte `items` hat: Posten werden an `mechanic` angehängt (Marker + Text). */
     const BENNY_ITEMS_MARK = '\n---BENNY_ITEMS---\n';
@@ -336,6 +378,39 @@
         "Asbo": { ausbeulen: 1500, motorhaube: 2000, lack: 750, frontstange: 6000, frontscheibe: 2500, scheinwerfer_l: 3000, scheinwerfer_r: 3000, rad_vl: 2000, rad_vr: 2000, rad_hl: 2000, rad_hr: 2000, tuer_vl: 5000, tuer_vr: 5000, tuer_hl: 5000, tuer_hr: 5000, seiten_glas: 2500, heckscheibe: 2500, heckstange: 6000, kofferraum: 4000, ruecklicht_l: 3000, ruecklicht_r: 3000 }
     };
 
+    // Leihwagen: Supabase-Tabellenname kann case-sensitive sein (z.B. "leihwagen" vs "Leihwagen")
+    let _loanerTableName = null;
+    async function resolveLoanerTableName() {
+        if (_loanerTableName) return _loanerTableName;
+        const candidates = ['Leihwagen', 'leihwagen'];
+        for (const t of candidates) {
+            const { error } = await _supabase.from(t).select('plate').limit(1);
+            // #region agent log
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_TABLE_NAME',location:'index.html:resolveLoanerTableName',message:'probe loaner table candidate',data:{candidate:t,hasError:!!error,errorMsg:error?String(error.message||error):null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            if (!error) { _loanerTableName = t; return _loanerTableName; }
+        }
+        _loanerTableName = candidates[0];
+        return _loanerTableName;
+    }
+    async function loadLoaners() {
+        const table = await resolveLoanerTableName();
+        await resolveLoanerLabelColumnName(table);
+        const { data, error } = await _supabase
+            .from(table)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_LOAD',location:'index.html:loadLoaners',message:'Leihwagen select result',data:{table,hasError:!!error,errorMsg:error?String(error.message||error):null,rowCount:(data||[]).length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+
+        if (error) return console.error(error);
+        loanerCache = (data || []).slice().sort((a, b) => String(a.plate).localeCompare(String(b.plate), 'de'));
+        refreshLoanerSelect();
+        renderLoanerTable();
+}
+
     async function load() {
         // Kein serverseitiges .order(): sonst HTTP 400, wenn Spalte z.B. "last_repair_date" in der DB fehlt oder anders heißt.
         const { data: cData, error: carsErr } = await _supabase.from('Cars').select('*');
@@ -345,14 +420,34 @@
             return tb - ta;
         });
         // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOAD_CARS_SELECT',location:'index.html:load:afterCarsSelect',message:'Cars select finished',data:{hasError:!!carsErr,errorMsg:carsErr?String(carsErr.message||carsErr):null,selectedRowCount:(cData||[]).length,lastSubmittedPlate,containsLastSubmitted:(lastSubmittedPlate?(cData||[]).some(r=>String(r.plate)===String(lastSubmittedPlate)):null)},timestamp:Date.now(),hypothesisId:'H_LOAD_CARS_SELECT'})}).catch(()=>{});
+        // #endregion
+        // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'66584b'},body:JSON.stringify({sessionId:'66584b',location:'index.html:load',message:'Cars select result',data:{hypothesisId:'H2',hasError:!!carsErr,carsError:carsErr?String(carsErr.message||carsErr):null,carsCode:carsErr&&carsErr.code,carsDetails:carsErr&&carsErr.details,carsHint:carsErr&&carsErr.hint,rowCount:sorted.length},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
         // #endregion
         if (carsErr) console.error('[Cars select]', carsErr);
         dataCache = sorted;
+        // Spaltenname für Leihwagen-Zuordnung in Cars ermitteln (damit wir nicht an falschen Field-Names scheitern).
+        const lwCol = await resolveLoanerCarsColumnName();
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_COLUMN_NAME',location:'index.html:load',message:'resolved loaner column in Cars',data:{loanerCarsColumnName:lwCol},timestamp:Date.now(),hypothesisId:'H_LOANERS_COLUMN_NAME'})}).catch(()=>{});
+        // #endregion
         const { data: mData } = await _supabase.from('Members').select('*');
         memberCache = mData || [];
+        const lwTable = await resolveLoanerTableName();
+        await resolveLoanerLabelColumnName(lwTable);
+        const { data: lwData, error: lwErr } = await _supabase.from(lwTable).select('*');
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_CACHE_FROM_LOAD',location:'index.html:load',message:'Leihwagen cache loaded in load()',data:{lwTable,hasError:!!lwErr,errorMsg:lwErr?String(lwErr.message||lwErr):null,rowCount:(lwData||[]).length},timestamp:Date.now(),hypothesisId:'H_LOANERS_CACHE_FROM_LOAD'})}).catch(()=>{});
+        // #endregion
+        if (lwErr) { console.warn('[Leihwagen]', lwErr.message || lwErr); loanerCache = []; }
+        else loanerCache = (lwData || []).slice().sort((a, b) => String(a.plate).localeCompare(String(b.plate), 'de'));
         
         generateCustomerList();
+        // #region agent log
+        const lastCar = lastSubmittedPlate ? dataCache.find(r => String(r.plate) === String(lastSubmittedPlate)) : null;
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_CUSTOMER_CACHE_BUILD',location:'index.html:load:afterCustomerList',message:'customer list built',data:{dataCacheLen:dataCache.length,customerCacheLen:customerCache.length,lastCarOwner:lastCar?lastCar.owner:null,hasLastCar:!!lastCar},timestamp:Date.now(),hypothesisId:'H_CUSTOMER_CACHE_BUILD'})}).catch(()=>{});
+        // #endregion
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'66584b'},body:JSON.stringify({sessionId:'66584b',location:'index.html:load:afterCustomerList',message:'cache after generateCustomerList',data:{hypothesisId:'H5',dataCacheLen:dataCache.length,customerCacheLen:customerCache.length},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
         // #endregion
@@ -361,12 +456,50 @@
         renderImpound();
         renderMembers();
         renderCustomers();
+        refreshLoanerSelect();
+        renderLoanerTable();
         const fm = document.getElementById('f_month');
         if (fm && !fm.value) {
             const d = new Date();
             fm.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
         if (document.getElementById('f_select').value) generateGroupInvoice();
+    }
+
+    async function resolveLoanerCarsColumnName() {
+        if (_loanerCarsColumnName) return _loanerCarsColumnName;
+        const candidates = [
+            'loaner_plate',
+            'leihwagen_plate',
+            'leihwagen',
+            'loaner',
+            'lw_plate',
+            'leihwagen_kennzeichen',
+        ];
+        for (const col of candidates) {
+            const { error } = await _supabase.from('Cars').select(col).limit(1);
+            // #region agent log
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_COLUMN_NAME',location:'index.html:resolveLoanerCarsColumnName',message:'probe Cars column candidate',data:{candidate:col,hasError:!!error,errorMsg:error?String(error.message||error):null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            if (!error) { _loanerCarsColumnName = col; return _loanerCarsColumnName; }
+        }
+        _loanerCarsColumnName = 'loaner_plate';
+        return _loanerCarsColumnName;
+    }
+
+    async function resolveLoanerLabelColumnName(lwTable) {
+        if (_loanerLabelColumnName) return _loanerLabelColumnName;
+        const table = lwTable || await resolveLoanerTableName();
+        const candidates = ['label', 'fahrzeug', 'fahrzeugtyp', 'fahrzeug_type', 'vehicle', 'modell', 'type', 'typ', 'beschreibung'];
+        for (const col of candidates) {
+            const { error } = await _supabase.from(table).select(col).limit(1);
+            // #region agent log
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANER_LABEL_COLUMN_NAME',location:'index.html:resolveLoanerLabelColumnName',message:'probe Leihwagen label candidate',data:{candidate:col,table,hasError:!!error,errorMsg:error?String(error.message||error):null},timestamp:Date.now(),hypothesisId:'H_LOANER_LABEL_COLUMN_NAME'})}).catch(()=>{});
+            // #endregion
+            if (!error) { _loanerLabelColumnName = col; return _loanerLabelColumnName; }
+        }
+        _loanerLabelColumnName = 'label';
+        return _loanerLabelColumnName;
     }
 
     /** Live-Updates: In Supabase unter Database → Publications „supabase_realtime“ die Tabellen Cars & Members hinzufügen (oder Table → Realtime einschalten). */
@@ -379,10 +512,135 @@
         _supabase.channel('bennys_shared_data')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'Cars' }, scheduleReloadFromRealtime)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'Members' }, scheduleReloadFromRealtime)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'Leihwagen' }, scheduleReloadFromRealtime)
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') console.log('[Realtime] verbunden – Änderungen von Kollegen werden automatisch geladen.');
-                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('[Realtime] Problem:', status, '– Prüfe in Supabase, ob Realtime für Cars/Members aktiv ist.');
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('[Realtime] Problem:', status, '– Prüfe in Supabase, ob Realtime für Cars/Members/Leihwagen aktiv ist.');
             });
+    }
+
+    function escHtml(s) {
+        if (s == null || s === '') return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+
+    function refreshLoanerSelect() {
+        const sel = document.getElementById('p_loaner');
+        if (!sel) return;
+        const prev = sel.value;
+        const lwLabelCol = _loanerLabelColumnName || 'label';
+        sel.innerHTML = '<option value="">— keiner —</option>';
+        loanerCache.forEach(r => {
+            const o = document.createElement('option');
+            o.value = r.plate;
+            o.textContent = `${r.plate}${r[lwLabelCol] ? ' · ' + r[lwLabelCol] : ''}`;
+            sel.appendChild(o);
+        });
+        if ([...sel.options].some(op => op.value === prev)) sel.value = prev;
+    }
+
+    function renderLoanerTable() {
+        const tbody = document.getElementById('loanerTable');
+        if (!tbody) return;
+        const lwCol = _loanerCarsColumnName || 'loaner_plate';
+        const lwLabelCol = _loanerLabelColumnName || 'label';
+        const rowsHtml = loanerCache.length ? loanerCache.map((r, idx) => {
+            const matches = dataCache
+                .filter(c => String(c[lwCol] || '') === String(r.plate))
+                .slice()
+                .sort((a, b) => new Date(b.last_repair_date || 0).getTime() - new Date(a.last_repair_date || 0).getTime());
+
+            const current = matches.find(c => c.status === 'offen');
+            const last = matches[0];
+
+            const borrowerName = current
+                ? (current.owner || 'Unbekannt')
+                : (last ? `zuletzt: ${last.owner || 'Unbekannt'}` : '–');
+
+            return `
+            <tr>
+                <td><b>${escHtml(r.plate)}</b></td>
+                <td>${escHtml(r[lwLabelCol]) || '–'}</td>
+                <td>${escHtml(borrowerName)}</td>
+                <td style="color:#aaa; font-size:0.9rem;">${escHtml(r.notes) || '–'}</td>
+                <td><button type="button" class="danger-btn" style="padding:6px 12px; width:auto;" onclick="deleteLoaner(${idx})">Löschen</button></td>
+            </tr>`;
+        }).join('') : '<tr><td colspan="5" style="color:#888;">Noch keine Leihwagen – oben anlegen (Tabelle „Leihwagen“ in Supabase).</td></tr>';
+
+        tbody.innerHTML = rowsHtml;
+
+        // #region agent log
+        const activeWithCurrentBorrower = loanerCache.filter(r => dataCache.some(c => String(c[lwCol] || '') === String(r.plate) && c.status === 'offen')).length;
+        const anyAssignment = loanerCache.filter(r => dataCache.some(c => String(c[lwCol] || '') === String(r.plate))).length;
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_BORROWERS',location:'index.html:renderLoanerTable',message:'loaner table rendered with borrowers',data:{loanerCount:loanerCache.length,lwCarsColumnName:lwCol,activeWithCurrentBorrower,anyAssignment},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+    }
+
+   async function saveLoaner() {
+    const plate = document.getElementById('lw_plate').value.trim().toUpperCase();
+    const label = document.getElementById('lw_label').value.trim();
+    const notes = document.getElementById('lw_notes').value.trim();
+
+    if (!plate) return alert("Kennzeichen eingeben!");
+    const table = await resolveLoanerTableName();
+    const lwLabelCol = await resolveLoanerLabelColumnName(table);
+    // #region agent log
+    fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANER_SAVE_LABEL_COL',location:'index.html:saveLoaner:beforeInsert',message:'saving loaner with resolved label column',data:{table,plate,labelLen:label.length,lwLabelCol},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    // #region agent log
+    fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_SAVE',location:'index.html:saveLoaner:beforeInsert',message:'attempt insert Leihwagen',data:{table,plate,labelLen:label.length,notesLen:notes.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    let payload = {
+        plate: plate,
+        [lwLabelCol]: label,
+        notes: notes,
+        status: 'verfügbar'
+    };
+
+    let { error } = await _supabase.from(table).insert([payload]);
+
+    // Falls die Tabelle weniger Spalten hat (z.B. nur plate), Felder schrittweise entfernen und erneut probieren.
+    if (error && new RegExp(String(lwLabelCol), 'i').test(String(error.message || ''))) {
+        const { [lwLabelCol]: _omit, ...rest } = payload;
+        payload = rest;
+        ({ error } = await _supabase.from(table).insert([payload]));
+    }
+    if (error && /notes/i.test(String(error.message || ''))) {
+        const { notes: _omit, ...rest } = payload;
+        payload = rest;
+        ({ error } = await _supabase.from(table).insert([payload]));
+    }
+    if (error && /status/i.test(String(error.message || ''))) {
+        const { status: _omit, ...rest } = payload;
+        payload = rest;
+        ({ error } = await _supabase.from(table).insert([payload]));
+    }
+
+    if (error) {
+        console.error("Fehler:", error);
+        alert("Fehler: " + error.message);
+    } else {
+        document.getElementById('lw_plate').value = "";
+        document.getElementById('lw_label').value = "";
+        document.getElementById('lw_notes').value = "";
+        await loadLoaners(); // aktualisiert Cache + Dropdown (Werkstatt)
+        // #region agent log
+        const sel = document.getElementById('p_loaner');
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANERS_SAVE',location:'index.html:saveLoaner:afterReload',message:'after loadLoaners refresh',data:{loanerCacheLen:loanerCache.length,selectExists:!!sel,selectOptions:sel?sel.options.length:null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        alert("Erfolgreich in neuer Tabelle 'Leihwagen' gespeichert!");
+    }
+}
+
+    async function deleteLoaner(idx) {
+        const r = loanerCache[idx];
+        if (!r) return;
+        if (!confirm('Leihwagen ' + r.plate + ' wirklich löschen?')) return;
+        const { error } = await _supabase.from('Leihwagen').delete().eq('plate', r.plate);
+        if (error) { console.error(error); return alert('Löschen fehlgeschlagen: ' + (error.message || error)); }
+        load();
     }
 
     function generateCustomerList() {
@@ -452,12 +710,27 @@
             let val = parseFloat(c.value); base += val;
             items.push({ name: c.parentElement.innerText.split('(')[0].trim(), price: val });
         });
+
+        // Mehrfach-Posten: Fahrzeugüberführung (Menge)
+        const transferQtyEl = document.getElementById('p_fahrzeugueberfuehrung_qty');
+        const transferUnitEl = document.getElementById('p_fahrzeugueberfuehrung_unit');
+        const transferQty = transferQtyEl ? (parseInt(transferQtyEl.value, 10) || 0) : 0;
+        const transferUnit = transferUnitEl ? (parseFloat(transferUnitEl.innerText) || 500) : 500;
+        if (transferQty > 0) {
+            const transferTotal = transferQty * transferUnit;
+            base += transferTotal;
+            items.push({ name: `Fahrzeugüberführung x${transferQty}`, price: transferTotal });
+        }
         const m = document.getElementById('p_member').value;
         let d = m==="Basic"?10:m==="Premium"?25:m==="Business"?25:0;
         let total = Math.round(base * (1 - (d/100)));
         
         document.getElementById('totalDisplay').innerText = "$" + total.toLocaleString('de-DE');
         document.getElementById('staffDisplay').innerText = "$" + Math.round(total * 0.05).toLocaleString('de-DE');
+
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_TRANSFER_QTY',location:'index.html:calculatePrice',message:'price recalculated incl transfer qty',data:{transferQty,transferUnit,itemsCount:items.length,base,total,discountPct:d},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         
         // Posten für die Datenbank formatieren
         currentRepairItems = items.map(i => `- ${i.name}`).join('\n');
@@ -472,7 +745,18 @@
         const plate = document.getElementById('p_plate').value || "---";
         const owner = document.getElementById('p_owner').value || "---";
         const payWhen = document.getElementById('p_payment_when').value;
+        const loanerPlate = document.getElementById('p_loaner').value;
+        let loanerLine = '';
+        if (loanerPlate) {
+            const lr = loanerCache.find(x => x.plate === loanerPlate);
+            const lwLabelCol = _loanerLabelColumnName || 'label';
+            loanerLine = `LEIHWAGEN: ${lr ? (lr.plate + (lr[lwLabelCol] ? ' · ' + lr[lwLabelCol] : '')) : loanerPlate}\n`;
+        }
         let lines = items.map(i => `${i.name.padEnd(25)} $${i.price.toLocaleString('de-DE').padStart(10)}`).join('\n');
+
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_INVOICE_LINES',location:'index.html:generateInvoice',message:'invoice lines computed',data:{itemsCount:items.length,hasTransfer:items.some(x=>String(x.name||'').toLowerCase().includes('fahrzeugüberführung')),base,d,total},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         document.getElementById('invoiceText').innerText = 
             `********************************************\n` +
             `         BENNY'S ORIGINAL MOTORWORKS        \n` +
@@ -480,6 +764,7 @@
             `DATUM:    ${now.toLocaleString('de-DE')}\n` +
             `KUNDE:    ${owner}\n` +
             `KFZ:      ${plate}\n` +
+            (loanerLine ? loanerLine : '') +
             `ZAHLUNG:  ${paymentWhenLabel(payWhen)}\n` +
             `--------------------------------------------\n` +
             `${lines}\n` +
@@ -497,8 +782,13 @@
     async function submitRepair() {
         const plate = document.getElementById('p_plate').value.toUpperCase().trim();
         const owner = document.getElementById('p_owner').value.trim();
+        lastSubmittedPlate = plate;
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'66584b'},body:JSON.stringify({sessionId:'66584b',location:'index.html:submitRepair:entry',message:'submitRepair called',data:{hypothesisId:'H4',plateLen:plate.length,ownerLen:owner.length,willEarlyExit:!plate||!owner},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
+
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_SUBMIT_REPAIR_INPUTS',location:'index.html:submitRepair:beforeUpsert',message:'submitRepair inputs',data:{plate,ownerLen:owner.length,mechanicLen:(document.getElementById('p_mechanic').value||'').length,currentRepairItemsLen:(currentRepairItems||'').length,costText:document.getElementById('totalDisplay')?document.getElementById('totalDisplay').innerText:null,payment_when:document.getElementById('p_payment_when').value,loaner_plate:document.getElementById('p_loaner').value||null,pickup_at:document.getElementById('p_pickup_deadline').value||null},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         if(!plate || !owner) return alert("Bitte Kennzeichen und Besitzer angeben!");
         
@@ -506,6 +796,8 @@
         const puRaw = document.getElementById('p_pickup_deadline').value;
         const pickupIso = puRaw ? new Date(puRaw).toISOString() : null;
         const payWhen = document.getElementById('p_payment_when').value;
+        const loanerPlate = document.getElementById('p_loaner').value || null;
+        const lwCarsCol = await resolveLoanerCarsColumnName();
         // Speichere nun auch 'items' (die Liste der gemachten Arbeiten) in der DB
         const upPayload = {
             plate: plate, 
@@ -519,7 +811,7 @@
             visits: old ? (old.visits + 1) : 1, 
             status: 'offen',
             pickup_at: pickupIso,
-            payment_when: payWhen
+            ...(loanerPlate ? { [lwCarsCol]: loanerPlate } : {})
         };
         let payload = { ...upPayload };
         let upRes = await _supabase.from('Cars').upsert(payload);
@@ -540,11 +832,25 @@
             payload = withoutPickup;
             upRes = await _supabase.from('Cars').upsert(payload);
         }
-        if (upRes.error && /payment_when/i.test(String(upRes.error.message || ''))) {
-            const { payment_when: _omitPay, ...withoutPay } = payload;
-            payload = withoutPay;
+        const upErrMsg = String(upRes.error && (upRes.error.message || upRes.error) ? (upRes.error.message || upRes.error) : '');
+        // Fallback: Falls die ermittelte Spalte in Cars doch nicht existiert (Schema-Drift),
+        // entfernen wir sie aus dem Payload und versuchen erneut.
+        if (upRes.error && lwCarsCol && upErrMsg.toLowerCase().includes(String(lwCarsCol).toLowerCase())) {
+            // #region agent log
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANER_PLATE_FALLBACK',location:'index.html:submitRepair:loaner_plateFallback',message:'loaner_plate field not available; removing from payload',data:{loanerPlate,upResErrorMsg:String(upRes.error.message||upRes.error),payloadKeysBefore:Object.keys(payload||{})},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            const { [lwCarsCol]: _omitLw, ...withoutLw } = payload;
+            payload = withoutLw;
             upRes = await _supabase.from('Cars').upsert(payload);
+            // #region agent log
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANER_PLATE_FALLBACK',location:'index.html:submitRepair:loaner_plateFallbackAfter',message:'re-upsert after removing loaner_plate',data:{hasError:!!upRes.error,errorMsg:upRes.error?String(upRes.error.message||upRes.error):null,payloadKeysAfter:Object.keys(payload||{})},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
         }
+
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_CARS_UPSERT_FINAL',location:'index.html:submitRepair:afterUpsert',message:'Cars upsert finished (after fallback retries)',data:{hasError:!!upRes.error,errorMsg:upRes.error?String(upRes.error.message||upRes.error):null,errorCode:upRes.error&&upRes.error.code,plate,finalPayloadKeys:Object.keys(payload||{}),visits:payload&&payload.visits,status:payload&&payload.status},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+
         if (upRes.error) console.error('[Cars upsert]', upRes.error);
         load(); showTab('invoice');
     }
@@ -611,12 +917,18 @@
         const open = dataCache.filter(c => c.status === 'offen').slice().sort((a, b) =>
             new Date(resolvePickupDeadlineISO(a)).getTime() - new Date(resolvePickupDeadlineISO(b)).getTime());
         document.getElementById('pickupList').innerHTML = open.length === 0 ? "<p>Nichts bereit.</p>" : open.map(c => {
+            const lwCol = _loanerCarsColumnName || 'loaner_plate';
+            const cLoanerPlate = c[lwCol];
             const iso = resolvePickupDeadlineISO(c);
             const escPlate = String(c.plate).replace(/'/g, "\\'");
             const payNote = paymentWhenLabel(c.payment_when);
+            const lr = cLoanerPlate && loanerCache.find(x => x.plate === cLoanerPlate);
+            const lwLine = cLoanerPlate
+                ? (lr ? `${escHtml(lr.plate)}${lr.label ? ' · ' + escHtml(lr.label) : ''}` : escHtml(cLoanerPlate))
+                : '';
             return `
             <div class="pickup-card">
-                <div><b>${c.plate}</b> | ${c.owner} <br><small>Preis: ${c.cost}</small><br><small style="color:#ccc;">${payNote}</small>
+                <div><b>${c.plate}</b> | ${c.owner} <br><small>Preis: ${c.cost}</small><br><small style="color:#ccc;">${payNote}</small>${lwLine ? `<br><small style="color:#9cf;">Leihwagen: ${lwLine}</small>` : ''}
                     <span class="pickup-deadline-line">Abholzeit: ${new Date(iso).toLocaleString('de-DE')}</span>
                     <span class="pickup-countdown" data-deadline="${iso}"></span>
                 </div>
@@ -734,7 +1046,7 @@
     }
 
     function showTab(t) {
-        ['workshop','impound','customers','members','pickup','database','fraktion','invoice'].forEach(s => { if(document.getElementById(s+'Section')) document.getElementById(s+'Section').classList.add('hidden'); });
+        ['workshop','impound','customers','members','pickup','leihwagen','database','fraktion','invoice'].forEach(s => { if(document.getElementById(s+'Section')) document.getElementById(s+'Section').classList.add('hidden'); });
         document.getElementById(t+'Section').classList.remove('hidden');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('t-'+t).classList.add('active');
@@ -743,6 +1055,7 @@
         else stopPickupCountdownTicker();
         if (t === 'fraktion' && document.getElementById('f_select').value) generateGroupInvoice();
         if (t === 'members') renderMembers();
+        if (t === 'leihwagen') renderLoanerTable();
     }
 
     function filterArchive() {
