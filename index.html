@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v42</title>
+    <title>Benny's Luxury Customs - Pro Management v42.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; }
@@ -291,11 +291,12 @@
 </div>
 
 <datalist id="vehicleList">
-  <option value="PKW">
-    <option value="Motorrad">
-        <option value="LKW">
-            <option value="Vans">
+<option value="PKW">
+<option value="Motorrad">
+<option value="LKW">
+<option value="Vans">
         
+    
 </datalist>
 
 <script>
@@ -382,10 +383,10 @@
     }
 
     const vehicleDatabase = {
-        "PKW"
-        "Motorrad"
-        "LKW"
-        "Vans"
+        "PKW": { ausbeulen: 500, motorhaube: 2000, lack: 750, frontstange: 2200, frontscheibe: 1500, scheinwerfer_l: 900, scheinwerfer_r: 900, rad_vl: 600, rad_vr: 600, rad_hl: 600, rad_hr: 600, tuer_vl: 2400, tuer_vr: 2400, tuer_hl: 2400, tuer_hr: 2400, seiten_glas: 800, heckscheibe: 1300, heckstange: 1500, kofferraum: 2800, ruecklicht_l: 500, ruecklicht_r: 500 },
+        "Motorrad": { ausbeulen: 500, motorhaube: 2000, lack: 750, frontstange: 2200, frontscheibe: 1500, scheinwerfer_l: 900, scheinwerfer_r: 900, rad_vl: 600, rad_vr: 600, rad_hl: 600, rad_hr: 600, tuer_vl: 2400, tuer_vr: 2400, tuer_hl: 2400, tuer_hr: 2400, seiten_glas: 800, heckscheibe: 1300, heckstange: 1500, kofferraum: 2800, ruecklicht_l: 500, ruecklicht_r: 500 },
+        "LKW": { ausbeulen: 500, motorhaube: 2000, lack: 750, frontstange: 2200, frontscheibe: 1500, scheinwerfer_l: 900, scheinwerfer_r: 900, rad_vl: 600, rad_vr: 600, rad_hl: 600, rad_hr: 600, tuer_vl: 2400, tuer_vr: 2400, tuer_hl: 2400, tuer_hr: 2400, seiten_glas: 800, heckscheibe: 1300, heckstange: 1500, kofferraum: 2800, ruecklicht_l: 500, ruecklicht_r: 500 },
+        "VANS": { ausbeulen: 500, motorhaube: 2000, lack: 750, frontstange: 2200, frontscheibe: 1500, scheinwerfer_l: 900, scheinwerfer_r: 900, rad_vl: 600, rad_vr: 600, rad_hl: 600, rad_hr: 600, tuer_vl: 2400, tuer_vr: 2400, tuer_hl: 2400, tuer_hr: 2400, seiten_glas: 800, heckscheibe: 1300, heckstange: 1500, kofferraum: 2800, ruecklicht_l: 500, ruecklicht_r: 500 }
     };
 
     // Leihwagen: Supabase-Tabellenname kann case-sensitive sein (z.B. "leihwagen" vs "Leihwagen")
@@ -732,7 +733,7 @@
             items.push({ name: `Fahrzeugüberführung x${transferQty}`, price: transferTotal });
         }
         const m = document.getElementById('p_member').value;
-        let d = m==="Basic"?10:m==="Premium"?25:m==="Business"?25:0;
+        let d = m==="Basic"?10:m==="Premium"?25:m==="Business"?25:m=="Sondertag"?5:0;
         let total = Math.round(base * (1 - (d/100)));
         
         document.getElementById('totalDisplay').innerText = "$" + total.toLocaleString('de-DE');
@@ -1158,6 +1159,8 @@
             `\n--------------------------------------------\n` +
             `ANZAHL POSTEN: ${filtered.length}\n` +
             `GESAMTSUMME:   $${sum.toLocaleString('de-DE')}\n` +
+            `Betrag bitte an folgendes Konto überweisen:
+            3818 5746 8795 6653`
             `--------------------------------------------\n` +
             `HINWEIS:       Einträge wurden nach Abschluss aus der Datenbank entfernt.\n` +
             `********************************************`;
