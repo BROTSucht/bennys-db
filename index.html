@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v37.2</title>
+    <title>Benny's Luxury Customs - Pro Management v41.9</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; }
@@ -105,36 +105,37 @@
 
             <div class="damage-grid" id="damageList">
                 <div style="grid-column: 1 / -1; border-bottom: 2px solid var(--bennys-yellow); margin: 20px 0 10px 0; padding-bottom: 5px; color: var(--bennys-yellow); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">🚗 Karosserie</div>
-                <div class="damage-item"><span>Ausbeulen ($<small id="p_ausbeulen">200</small>)</span> <input type="checkbox" data-key="ausbeulen" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Motorhaube ($<small id="p_motorhaube">200</small>)</span> <input type="checkbox" data-key="motorhaube" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Lackschaden ($<small id="p_lack">150</small>)</span> <input type="checkbox" data-key="lack" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Frontstange ($<small id="p_frontstange">200</small>)</span> <input type="checkbox" data-key="frontstange" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Heckstange ($<small id="p_heckstange">200</small>)</span> <input type="checkbox" data-key="heckstange" value="200" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Tür V L ($<small id="p_tuer_vl">400</small>)</span> <input type="checkbox" data-key="tuer_vl" value="400" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Tür V R ($<small id="p_tuer_vr">400</small>)</span> <input type="checkbox" data-key="tuer_vr" value="400" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Tür H L ($<small id="p_tuer_hl">400</small>)</span> <input type="checkbox" data-key="tuer_hl" value="400" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Tür H R ($<small id="p_tuer_hr">400</small>)</span> <input type="checkbox" data-key="tuer_hr" value="400" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Kofferraum ($<small id="p_kofferraum">300</small>)</span> <input type="checkbox" data-key="kofferraum" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Ausbeulen ($<small id="p_ausbeulen">500</small>)</span> <input type="checkbox" data-key="ausbeulen" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Motorhaube ($<small id="p_motorhaube">2000</small>)</span> <input type="checkbox" data-key="motorhaube" value="2000" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Lackschaden ($<small id="p_lack">750</small>)</span> <input type="checkbox" data-key="lack" value="750" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Frontstange ($<small id="p_frontstange">2200</small>)</span> <input type="checkbox" data-key="frontstange" value="2200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Heckstange ($<small id="p_heckstange">1500</small>)</span> <input type="checkbox" data-key="heckstange" value="200" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür V L ($<small id="p_tuer_vl">2400</small>)</span> <input type="checkbox" data-key="tuer_vl" value="2400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür V R ($<small id="p_tuer_vr">2400</small>)</span> <input type="checkbox" data-key="tuer_vr" value="2400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür H L ($<small id="p_tuer_hl">2400</small>)</span> <input type="checkbox" data-key="tuer_hl" value="2400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Tür H R ($<small id="p_tuer_hr">2400</small>)</span> <input type="checkbox" data-key="tuer_hr" value="2400" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Kofferraum ($<small id="p_kofferraum">2800</small>)</span> <input type="checkbox" data-key="kofferraum" value="2800" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>GPS($<small id="p_gps">1250</small>)</span> <input type="checkbox" data-key="gps" value="1250" onchange="calculatePrice()"></div>
 
                 <div style="grid-column: 1 / -1; border-bottom: 2px solid var(--bennys-yellow); margin: 20px 0 10px 0; padding-bottom: 5px; color: var(--bennys-yellow); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">💎 Scheiben</div>
-                <div class="damage-item"><span>Frontscheibe ($<small id="p_frontscheibe">250</small>)</span> <input type="checkbox" data-key="frontscheibe" value="250" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Heckscheibe ($<small id="p_heckscheibe">280</small>)</span> <input type="checkbox" data-key="heckscheibe" value="280" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheibe V L ($<small id="p_seiten_glas_vorne_l">125</small>)</span> <input type="checkbox" data-key="seiten_glas_vorne_l" value="125" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheibe V R ($<small id="p_seiten_glas_vorne_r">125</small>)</span> <input type="checkbox" data-key="seiten_glas_vorne_r" value="125" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheibe H L ($<small id="p_seiten_glas_hinten_l">125</small>)</span> <input type="checkbox" data-key="seiten_glas_hinten_l" value="125" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Seitenscheibe H R ($<small id="p_seiten_glas_hinten_r">125</small>)</span> <input type="checkbox" data-key="seiten_glas_hinten_r" value="125" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Frontscheibe ($<small id="p_frontscheibe">1500</small>)</span> <input type="checkbox" data-key="frontscheibe" value="1500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Heckscheibe ($<small id="p_heckscheibe">1300</small>)</span> <input type="checkbox" data-key="heckscheibe" value="1300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheibe V L ($<small id="p_seiten_glas_vorne_l">800</small>)</span> <input type="checkbox" data-key="seiten_glas_vorne_l" value="800" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheibe V R ($<small id="p_seiten_glas_vorne_r">800</small>)</span> <input type="checkbox" data-key="seiten_glas_vorne_r" value="800" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheibe H L ($<small id="p_seiten_glas_hinten_l">800</small>)</span> <input type="checkbox" data-key="seiten_glas_hinten_l" value="800" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Seitenscheibe H R ($<small id="p_seiten_glas_hinten_r">800</small>)</span> <input type="checkbox" data-key="seiten_glas_hinten_r" value="800" onchange="calculatePrice()"></div>
 
                 <div style="grid-column: 1 / -1; border-bottom: 2px solid var(--bennys-yellow); margin: 20px 0 10px 0; padding-bottom: 5px; color: var(--bennys-yellow); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">💡 Lichter</div>
-                <div class="damage-item"><span>Scheinwerfer L ($<small id="p_scheinwerfer_l">150</small>)</span> <input type="checkbox" data-key="scheinwerfer_l" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Scheinwerfer R ($<small id="p_scheinwerfer_r">150</small>)</span> <input type="checkbox" data-key="scheinwerfer_r" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Rücklicht L ($<small id="p_ruecklicht_l">150</small>)</span> <input type="checkbox" data-key="ruecklicht_l" value="150" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Rücklicht R ($<small id="p_ruecklicht_r">150</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="150" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Scheinwerfer L ($<small id="p_scheinwerfer_l">900</small>)</span> <input type="checkbox" data-key="scheinwerfer_l" value="900" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Scheinwerfer R ($<small id="p_scheinwerfer_r">900</small>)</span> <input type="checkbox" data-key="scheinwerfer_r" value="900" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Rücklicht L ($<small id="p_ruecklicht_l">500</small>)</span> <input type="checkbox" data-key="ruecklicht_l" value="500" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Rücklicht R ($<small id="p_ruecklicht_r">500</small>)</span> <input type="checkbox" data-key="ruecklicht_r" value="500" onchange="calculatePrice()"></div>
 
                 <div style="grid-column: 1 / -1; border-bottom: 2px solid var(--bennys-yellow); margin: 20px 0 10px 0; padding-bottom: 5px; color: var(--bennys-yellow); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">🛞 Räder</div>
-                <div class="damage-item"><span>Vorder Rad L ($<small id="p_rad_vl">300</small>)</span> <input type="checkbox" data-key="rad_vl" value="300" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Vorder Rad R ($<small id="p_rad_vr">300</small>)</span> <input type="checkbox" data-key="rad_vr" value="300" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Hinterrad L ($<small id="p_rad_hl">300</small>)</span> <input type="checkbox" data-key="rad_hl" value="300" onchange="calculatePrice()"></div>
-                <div class="damage-item"><span>Hinterrad R ($<small id="p_rad_hr">300</small>)</span> <input type="checkbox" data-key="rad_hr" value="300" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Vorder Rad L ($<small id="p_rad_vl">600</small>)</span> <input type="checkbox" data-key="rad_vl" value="600" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Vorder Rad R ($<small id="p_rad_vr">600</small>)</span> <input type="checkbox" data-key="rad_vr" value="600" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Hinterrad L ($<small id="p_rad_hl">600</small>)</span> <input type="checkbox" data-key="rad_hl" value="600" onchange="calculatePrice()"></div>
+                <div class="damage-item"><span>Hinterrad R ($<small id="p_rad_hr">600</small>)</span> <input type="checkbox" data-key="rad_hr" value="600" onchange="calculatePrice()"></div>
 
                 <div style="grid-column: 1 / -1; border-bottom: 2px solid var(--bennys-yellow); margin: 20px 0 10px 0; padding-bottom: 5px; color: var(--bennys-yellow); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">🛠️ Bergung & Service</div>
                 <div class="damage-item"><span>Abschleppen Stadt ($<small id="p_abschleppen_stadt">500</small>)</span> <input type="checkbox" data-key="abschleppen_stadt" value="500" onchange="calculatePrice()"></div>
@@ -274,6 +275,7 @@
                         <option value="Basic">Basic (10%)</option>
                         <option value="Premium">Premium (25%)</option>
                         <option value="Business">Business (25%)</option>
+                        <option value="Sondertag">Sondertag (5%)</option>
                     </select>
                 </div>
                 <div class="input-group" style="margin-bottom:0;"><label>Mitglied seit</label><input type="date" id="m_since"></div>
