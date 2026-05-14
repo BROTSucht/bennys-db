@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v44</title>
+    <title>Benny's Luxury Customs - Pro Management v42.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; --sb-track: #1a1a1a; --sb-thumb: #3d3d3d; --sb-thumb-hover: #4f4f4f; }
@@ -311,88 +311,13 @@
             </div>
             <button type="button" class="action-btn" style="margin-bottom:16px;" onclick="generateMonthlyClosingInvoice()">Monatsabschluss-Rechnung erstellen</button>
             <button type="button" class="danger-btn" style="margin-bottom:16px; background:#444;" onclick="clearFraktionOverview()">Fraktions-Übersicht leeren</button>
-            <details style="margin:0 0 16px 0; color:#ccc; border:1px solid #444; border-radius:8px; padding:12px; background:#1a1a1a;">
-                <summary style="cursor:pointer; color:var(--bennys-yellow); font-weight:bold; user-select:none;">Discord: Fraktions-Rechnungen (LSPD/PD, FD, …)</summary>
-                <p style="font-size:0.8rem; color:#888; margin:12px 0;">Je Fraktion einen <strong>Webhook</strong> aus dem jeweiligen Kanal. Zusätzlich <strong>Privat / normale Kunden</strong>: eigener Webhook für Werkstatt- und Impound-Rechnungen ohne Fraktions-Kürzel im Namen oder Kennzeichen. <strong>Monatsabschluss</strong> geht nur an Fraktions-Webhooks. Auto-Post optional (siehe Häkchen). Webhooks nur lokal im Browser.</p>
-                <div style="border:1px solid #444; border-radius:8px; padding:12px; margin-bottom:14px; background:#111;">
-                    <p style="font-size:0.8rem; color:#aaa; margin:0 0 10px 0;"><strong>Speicherung:</strong> Webhooks und Auto-Post-Optionen werden in Supabase (<code style="font-size:0.75rem;">bennys_discord_invoice_settings</code>, Zeile <code style="font-size:0.75rem;">id=default</code>) mitgeschrieben — zusätzlich im Browser (<code style="font-size:0.75rem;">localStorage</code>). Das <strong>Anzeige-Passwort</strong> bleibt nur lokal.</p>
-                    <p style="font-size:0.8rem; color:#aaa; margin:0 0 10px 0;"><strong>Passwortschutz:</strong> Nach dem Setzen eines Anzeige-Passworts werden Webhook-URLs <strong>nicht</strong> in die Felder geladen, bis du das Passwort einträgst und <strong>Anzeigen</strong> wählst (nur diese Browser-Sitzung). <strong>Verbergen</strong> leert die Felder wieder. Ohne gesetztes Passwort verhält sich alles wie zuvor.</p>
-                    <div id="inv_wh_set_pass_wrap" style="display:none; margin-bottom:12px;">
-                        <p style="font-size:0.75rem; color:#fa0; margin:0 0 8px 0;">Noch kein Anzeige-Passwort — optional setzen, um URLs zu verstecken:</p>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-                            <div class="input-group" style="margin:0;"><label style="font-size:0.75rem;">Anzeige-Passwort (neu)</label><input type="password" id="inv_wh_set_pass" autocomplete="new-password" style="width:100%; box-sizing:border-box;"></div>
-                            <div class="input-group" style="margin:0;"><label style="font-size:0.75rem;">Wiederholung</label><input type="password" id="inv_wh_set_pass2" autocomplete="new-password" style="width:100%; box-sizing:border-box;"></div>
-                        </div>
-                        <button type="button" class="action-btn" style="width:auto; padding:10px 16px;" onclick="void invSaveNewViewPassword()">Passwort setzen &amp; Felder sperren</button>
-                    </div>
-                    <div id="inv_wh_unlock_row" style="display:none; grid-template-columns:1fr auto auto; gap:8px; align-items:end;">
-                        <div class="input-group" style="margin:0;">
-                            <label style="font-size:0.75rem;">Passwort zum Anzeigen der Webhooks</label>
-                            <input type="password" id="inv_wh_unlock_pass" autocomplete="off" style="width:100%; box-sizing:border-box;" placeholder="Passwort eingeben …">
-                        </div>
-                        <button type="button" class="action-btn" style="width:auto; padding:12px 16px;" onclick="invTryUnlockWebhooks()">Anzeigen</button>
-                        <button type="button" class="danger-btn" style="width:auto; padding:12px 16px; background:#444;" onclick="invLockWebhooksUi()">Verbergen</button>
-                    </div>
-                    <p id="inv_wh_lock_hint" style="font-size:0.75rem; color:#888; margin:10px 0 0 0;"></p>
-                    <button type="button" id="inv_wh_remove_protect_btn" onclick="invRemoveViewPasswordAfterUnlock()" style="display:none; margin-top:10px; font-size:0.75rem; color:#c98; background:none; border:none; cursor:pointer; text-decoration:underline;">Passwortschutz dauerhaft entfernen…</button>
-                </div>
-                <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:0.9rem; cursor:pointer;">
-                    <input type="checkbox" id="inv_disc_autopost"> Beim Monatsabschluss automatisch an Discord senden
-                </label>
-                <label style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:0.9rem; cursor:pointer;">
-                    <input type="checkbox" id="inv_disc_autopost_repair"> Nach Werkstatt-Speichern / Impound-Auslöse automatisch (Fraktions-Kanal oder Privat-Webhook)
-                </label>
-                <div id="inv_wh_fields_wrap" style="display:grid; grid-template-columns:minmax(100px,140px) 1fr; gap:10px; align-items:center;">
-                    <label style="font-size:0.75rem; color:#9cf;">Privat / Kunde</label><input type="password" id="inv_wh_privat" placeholder="Webhook für normale Kundenrechnungen" autocomplete="off" style="width:100%; box-sizing:border-box;">
-                    <label style="font-size:0.75rem; color:#aaa;">LSPD (PD)</label><input type="password" id="inv_wh_LSPD" placeholder="https://discord.com/api/webhooks/…" autocomplete="off" style="width:100%; box-sizing:border-box;">
-                    <label style="font-size:0.75rem; color:#aaa;">MD</label><input type="password" id="inv_wh_MD" placeholder="Webhook Medical" autocomplete="off" style="width:100%; box-sizing:border-box;">
-                    <label style="font-size:0.75rem; color:#aaa;">FD</label><input type="password" id="inv_wh_FD" placeholder="Webhook Fire Dept" autocomplete="off" style="width:100%; box-sizing:border-box;">
-                    <label style="font-size:0.75rem; color:#aaa;">DOJ</label><input type="password" id="inv_wh_DOJ" placeholder="Webhook DOJ" autocomplete="off" style="width:100%; box-sizing:border-box;">
-                    <label style="font-size:0.75rem; color:#aaa;">PMG</label><input type="password" id="inv_wh_PMG" placeholder="Webhook PMG" autocomplete="off" style="width:100%; box-sizing:border-box;">
-                </div>
-                <button type="button" class="action-btn" style="margin-top:14px;" onclick="void saveInvoiceDiscordSettings()">Discord-Einstellungen speichern</button>
-                <p id="inv_disc_status" style="margin-top:10px; font-size:0.85rem; color:#9cf;"></p>
-                <details style="margin-top:12px; font-size:0.78rem; color:#888;">
-                    <summary style="cursor:pointer; color:#9ac;">Supabase: Tabelle anlegen (einmalig)</summary>
-                    <p style="margin:8px 0;">Im SQL-Editor ausführen. Webhook-URLs sind geheime Tokens — mit dem öffentlichen anon-Key der Seite sind sie für jeden lesbar, der die Tabelle abfragen kann.</p>
-                    <pre style="overflow:auto; max-height:220px; background:#1a1a1a; padding:10px; border-radius:6px; font-size:0.7rem; line-height:1.35;">create table if not exists public.bennys_discord_invoice_settings (
-  id text primary key,
-  faction_webhooks jsonb not null default '{}'::jsonb,
-  privat_webhook text,
-  autopost_monthly boolean not null default false,
-  autopost_repair boolean not null default false,
-  updated_at timestamptz default now()
-);
-
-alter table public.bennys_discord_invoice_settings enable row level security;
-
-create policy "bennys_discord_invoice_select" on public.bennys_discord_invoice_settings for select using (true);
-create policy "bennys_discord_invoice_insert" on public.bennys_discord_invoice_settings for insert with check (true);
-create policy "bennys_discord_invoice_update" on public.bennys_discord_invoice_settings for update using (true) with check (true);
-
-grant select, insert, update on public.bennys_discord_invoice_settings to anon, authenticated;</pre>
-                </details>
-            </details>
             <div id="groupResult"></div>
         </div>
     </div>
 
     <div id="invoiceSection" class="hidden">
         <div class="archive-card" style="background:#333;">
-            <div class="input-group" style="margin-bottom:12px;">
-                <label style="color:#aaa;">Discord — Ziel (Fraktion oder Privat-Kunden)</label>
-                <select id="inv_manual_faction_override" style="width:100%; box-sizing:border-box;">
-                    <option value="">— automatisch (Monatsrechnung / Fraktion im Text / sonst Privat-Webhook) —</option>
-                    <option value="PRIVAT">Privat / normale Kunden</option>
-                    <option value="LSPD">LSPD (PD)</option>
-                    <option value="MD">MD</option>
-                    <option value="FD">FD</option>
-                    <option value="DOJ">DOJ</option>
-                    <option value="PMG">PMG</option>
-                </select>
-            </div>
             <button class="action-btn" style="margin-bottom:15px;" onclick="copyInvoice()">Kopieren für Discord / Ingame</button>
-            <button type="button" class="action-btn" style="margin-bottom:15px; background:#5865F2; color:#fff;" onclick="sendCurrentInvoiceToFactionDiscord()">An Discord senden</button>
             <button type="button" class="danger-btn" style="margin-bottom:15px; background:#444;" onclick="clearInvoiceDisplay()">Rechnung / Sammelrechnung leeren</button>
             <pre id="invoiceText">Noch keine Rechnung generiert...</pre>
         </div>
@@ -710,7 +635,6 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
         renderProvisionTab();
         refreshWorkshopMechanicDropdown();
         await loadInvoiceDiscordSettingsFromSupabase();
-        invApplyWebhookUiVisibility();
         const fm = document.getElementById('f_month');
         if (fm && !fm.value) {
             const d = new Date();
@@ -1809,7 +1733,6 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
         if (t === 'pickup') void load();
         else stopPickupCountdownTicker();
         if (t === 'fraktion' && document.getElementById('f_select').value) generateGroupInvoice();
-        if (t === 'fraktion') initInvoiceDiscordUi();
         if (t === 'members') renderMembers();
         if (t === 'leihwagen') renderLoanerTable();
         if (t === 'fleet') { void loadBennysFleetCache().then(() => renderBennysFleetTable()); }
@@ -1823,151 +1746,6 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
     const INV_DISC_AUTOPOST = 'bennys_invoice_faction_autopost_v1';
     const INV_DISC_AUTOPOST_REPAIR = 'bennys_invoice_repair_autopost_v1';
     const INV_FACTION_KEYS = ['LSPD', 'MD', 'FD', 'DOJ', 'PMG'];
-    const INV_WH_VIEW_PASSWORD = 'bennys_invoice_webhook_view_password_v1';
-    const INV_WH_UNLOCK_FLAG = 'bennys_invoice_wh_unlocked_v1';
-
-    function invHasViewPassword() {
-        const p = localStorage.getItem(INV_WH_VIEW_PASSWORD);
-        return !!(p && String(p).length);
-    }
-    function invGetViewPassword() {
-        return String(localStorage.getItem(INV_WH_VIEW_PASSWORD) || '');
-    }
-    function invIsWebhooksUnlocked() {
-        return sessionStorage.getItem(INV_WH_UNLOCK_FLAG) === '1';
-    }
-    function invSetWebhooksUnlocked(on) {
-        if (on) sessionStorage.setItem(INV_WH_UNLOCK_FLAG, '1');
-        else sessionStorage.removeItem(INV_WH_UNLOCK_FLAG);
-    }
-    function invCollectAndValidateWebhookInputs() {
-        const next = {};
-        let invalid = false;
-        const rawPriv = String(document.getElementById('inv_wh_privat') && document.getElementById('inv_wh_privat').value || '').trim();
-        if (rawPriv && !ulIsValidDiscordWebhook(rawPriv)) invalid = 'Privat / Kunde';
-        INV_FACTION_KEYS.forEach(k => {
-            const raw = String(document.getElementById('inv_wh_' + k) && document.getElementById('inv_wh_' + k).value || '').trim();
-            if (raw && !ulIsValidDiscordWebhook(raw)) invalid = k;
-            if (raw) next[k] = raw;
-        });
-        return { invalid, next, rawPriv };
-    }
-    function invApplyWebhookUiVisibility() {
-        const wrap = document.getElementById('inv_wh_set_pass_wrap');
-        if (wrap) wrap.style.display = invHasViewPassword() ? 'none' : 'block';
-        const rm = document.getElementById('inv_wh_remove_protect_btn');
-        if (rm) rm.style.display = invHasViewPassword() ? 'inline-block' : 'none';
-        const row = document.getElementById('inv_wh_unlock_row');
-        if (row) {
-            row.style.display = invHasViewPassword() ? 'grid' : 'none';
-        }
-        const hint = document.getElementById('inv_wh_lock_hint');
-        if (hint) {
-            if (!invHasViewPassword()) hint.textContent = 'Kein Anzeige-Passwort: Webhooks sind direkt in den Feldern sichtbar.';
-            else if (!invIsWebhooksUnlocked()) hint.textContent = 'Webhook-URLs sind verborgen — Passwort eingeben und „Anzeigen“.';
-            else hint.textContent = 'Freigeschaltet: URLs sichtbar bis „Verbergen“ oder neues Laden der Seite.';
-        }
-        const w = invGetWebhooks();
-        const privat = invGetPrivatWebhook();
-        const showValues = !invHasViewPassword() || invIsWebhooksUnlocked();
-        const pvEl = document.getElementById('inv_wh_privat');
-        const phLocked = '*** Freischalten zum Anzeigen';
-        if (pvEl) {
-            if (showValues) {
-                pvEl.value = privat;
-                pvEl.readOnly = false;
-                pvEl.type = 'text';
-                pvEl.placeholder = 'https://discord.com/api/webhooks/…';
-            } else {
-                pvEl.value = '';
-                pvEl.readOnly = true;
-                pvEl.type = 'password';
-                pvEl.placeholder = phLocked;
-            }
-        }
-        INV_FACTION_KEYS.forEach(k => {
-            const el = document.getElementById('inv_wh_' + k);
-            if (!el) return;
-            if (showValues) {
-                el.value = String(w[k] || '');
-                el.readOnly = false;
-                el.type = 'text';
-                el.placeholder = 'https://discord.com/api/webhooks/…';
-            } else {
-                el.value = '';
-                el.readOnly = true;
-                el.type = 'password';
-                el.placeholder = phLocked;
-            }
-        });
-    }
-    function invLockWebhooksUi() {
-        invSetWebhooksUnlocked(false);
-        const u = document.getElementById('inv_wh_unlock_pass');
-        if (u) u.value = '';
-        invApplyWebhookUiVisibility();
-        if (invHasViewPassword()) invSetDiscordStatus('Webhook-Anzeige verborgen.', false);
-    }
-    function invTryUnlockWebhooks() {
-        if (!invHasViewPassword()) {
-            invSetWebhooksUnlocked(true);
-            const u = document.getElementById('inv_wh_unlock_pass');
-            if (u) u.value = '';
-            invApplyWebhookUiVisibility();
-            invSetDiscordStatus('Kein Passwortschutz aktiv.', false);
-            return;
-        }
-        const p = String(document.getElementById('inv_wh_unlock_pass') && document.getElementById('inv_wh_unlock_pass').value || '');
-        if (p !== invGetViewPassword()) {
-            invSetDiscordStatus('Falsches Passwort.', true);
-            return;
-        }
-        invSetWebhooksUnlocked(true);
-        const u = document.getElementById('inv_wh_unlock_pass');
-        if (u) u.value = '';
-        invApplyWebhookUiVisibility();
-        invSetDiscordStatus('Webhooks eingeblendet (Sitzung).', false);
-    }
-    async function invSaveNewViewPassword() {
-        const a = String(document.getElementById('inv_wh_set_pass') && document.getElementById('inv_wh_set_pass').value || '');
-        const b = String(document.getElementById('inv_wh_set_pass2') && document.getElementById('inv_wh_set_pass2').value || '');
-        if (a.length < 4) return invSetDiscordStatus('Anzeige-Passwort: mindestens 4 Zeichen.', true);
-        if (a !== b) return invSetDiscordStatus('Passwörter stimmen nicht überein.', true);
-        const coll = invCollectAndValidateWebhookInputs();
-        if (coll.invalid) return invSetDiscordStatus('Ungültige Webhook-URL bei ' + coll.invalid + ' (muss https://discord.com/api/webhooks/… sein).', true);
-        invSetWebhooks(coll.next);
-        invSetPrivatWebhook(coll.rawPriv);
-        localStorage.setItem(INV_WH_VIEW_PASSWORD, a);
-        const e1 = document.getElementById('inv_wh_set_pass');
-        const e2 = document.getElementById('inv_wh_set_pass2');
-        if (e1) e1.value = '';
-        if (e2) e2.value = '';
-        invSetWebhooksUnlocked(false);
-        invApplyWebhookUiVisibility();
-        const base = 'Anzeige-Passwort ist aktiv. Webhooks sind verborgen — mit Passwort „Anzeigen“ bearbeiten.';
-        const r = await syncInvoiceDiscordSettingsToSupabase();
-        if (r.ok) invSetDiscordStatus(base + ' In Supabase gesichert.', false);
-        else if (r.reason === 'no_table') invSetDiscordStatus(base + ' Hinweis: Supabase-Tabelle fehlt (siehe SQL unten) — nur in diesem Browser.', true);
-        else invSetDiscordStatus(base + ' Supabase: ' + r.reason + ' (Webhooks nur lokal).', true);
-    }
-    function invRemoveViewPasswordAfterUnlock() {
-        if (!invHasViewPassword()) return;
-        if (!invIsWebhooksUnlocked()) {
-            alert('Bitte zuerst „Anzeigen“ mit dem richtigen Passwort wählen.');
-            return;
-        }
-        const p = prompt('Aktuelles Anzeige-Passwort zur Bestätigung:');
-        if (p == null) return;
-        if (String(p) !== invGetViewPassword()) {
-            alert('Falsches Passwort.');
-            return;
-        }
-        if (!confirm('Passwortschutz dauerhaft entfernen? Gespeicherte Webhooks bleiben erhalten.')) return;
-        localStorage.removeItem(INV_WH_VIEW_PASSWORD);
-        invSetWebhooksUnlocked(false);
-        invApplyWebhookUiVisibility();
-        invSetDiscordStatus('Passwortschutz entfernt. Webhooks wieder dauerhaft sichtbar.', false);
-    }
 
     function invGetPrivatWebhook() {
         return String(localStorage.getItem(INV_DISC_WEBHOOK_PRIVAT) || '').trim();
@@ -2025,21 +1803,10 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
         };
     }
     async function syncInvoiceDiscordSettingsToSupabase() {
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:syncInvoiceDiscordSettingsToSupabase',message:'sync start',data:{hypothesisId:'INV_DB'},timestamp:Date.now(),hypothesisId:'INV_DB'})}).catch(()=>{});
-        // #endregion
         const table = await resolveInvoiceDiscordSettingsTable();
-        if (!table) {
-            // #region agent log
-            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:syncInvoiceDiscordSettingsToSupabase',message:'no table',data:{hypothesisId:'INV_DB'},timestamp:Date.now(),hypothesisId:'INV_DB'})}).catch(()=>{});
-            // #endregion
-            return { ok: false, reason: 'no_table' };
-        }
+        if (!table) return { ok: false, reason: 'no_table' };
         const row = invBuildDiscordRowForSupabase();
         const { error } = await _supabase.from(table).upsert(row, { onConflict: 'id' });
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:syncInvoiceDiscordSettingsToSupabase',message:'upsert done',data:{hypothesisId:'INV_DB',table,hasError:!!error,errorMsg:error?String(error.message||error):null},timestamp:Date.now(),hypothesisId:'INV_DB'})}).catch(()=>{});
-        // #endregion
         if (error) return { ok: false, reason: String(error.message || error) };
         return { ok: true };
     }
@@ -2065,49 +1832,6 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
 
     function invGetWebhookForFaction(f) {
         return String((invGetWebhooks() || {})[f] || '').trim();
-    }
-    function initInvoiceDiscordUi() {
-        const ap = document.getElementById('inv_disc_autopost');
-        if (ap) ap.checked = invGetAutopost();
-        const apr = document.getElementById('inv_disc_autopost_repair');
-        if (apr) apr.checked = invGetAutopostRepair();
-        const st = document.getElementById('inv_disc_status');
-        if (st) st.textContent = '';
-        invApplyWebhookUiVisibility();
-    }
-    function invSetDiscordStatus(msg, isErr) {
-        const el = document.getElementById('inv_disc_status');
-        if (!el) return;
-        el.textContent = msg || '';
-        el.style.color = isErr ? '#f88' : '#9cf';
-    }
-    function ulIsValidDiscordWebhook(u) {
-        return /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[^?\s#]+$/i.test(String(u || '').trim());
-    }
-    async function saveInvoiceDiscordSettings() {
-        const hasP = invHasViewPassword();
-        const unlocked = invIsWebhooksUnlocked();
-        const coll = invCollectAndValidateWebhookInputs();
-        if (coll.invalid) {
-            invSetDiscordStatus('Ungültige Webhook-URL bei ' + coll.invalid + ' (muss https://discord.com/api/webhooks/… sein).', true);
-            return;
-        }
-        if (!hasP || unlocked) {
-            invSetWebhooks(coll.next);
-            invSetPrivatWebhook(coll.rawPriv);
-        }
-        invSetAutopost(!!document.getElementById('inv_disc_autopost').checked);
-        invSetAutopostRepair(!!document.getElementById('inv_disc_autopost_repair').checked);
-        let base;
-        if (hasP && !unlocked) {
-            base = 'Auto-Post-Einstellungen gespeichert. Webhooks unverändert (zum Bearbeiten: Passwort + „Anzeigen“).';
-        } else {
-            base = 'Gespeichert. Privat = normale Kundenrechnungen ohne Fraktions-Kürzel.';
-        }
-        const r = await syncInvoiceDiscordSettingsToSupabase();
-        if (r.ok) invSetDiscordStatus(base + ' In Supabase gesichert.', false);
-        else if (r.reason === 'no_table') invSetDiscordStatus(base + ' Hinweis: Supabase-Tabelle fehlt (SQL unten) — nur in diesem Browser.', true);
-        else invSetDiscordStatus(base + ' Supabase-Speichern fehlgeschlagen: ' + r.reason + ' (lokal trotzdem gespeichert).', true);
     }
     function splitDiscordContentChunks(text, maxLen) {
         const cap = Math.min(1990, Math.max(500, maxLen || 1900));
@@ -2187,38 +1911,6 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
         };
         return tryOne(owner) || tryOne(plate);
     }
-    function parseKundeFromInvoiceText(txt) {
-        const m = String(txt || '').match(/KUNDE:\s+(.+)/);
-        return m ? m[1].trim() : '';
-    }
-    function parsePlateFromInvoiceText(txt) {
-        const m = String(txt || '').match(/KFZ:\s+(.+)/);
-        return m ? m[1].trim() : '';
-    }
-    function classifyInvoiceBodyKind(body) {
-        const b = String(body || '');
-        if (/MONATSABSCHLUSS/i.test(b) && /FRAKTION:/i.test(b)) return 'monthly';
-        if (/TYP:\s*IMPOUND-AUSLÖSE/i.test(b)) return 'impound';
-        return 'werkstatt';
-    }
-    function resolveInvoiceDiscordTarget(body) {
-        const manualEl = document.getElementById('inv_manual_faction_override');
-        const manual = manualEl && String(manualEl.value || '').trim();
-        if (manual === 'PRIVAT') return { target: 'PRIVAT', source: 'manual' };
-        if (manual && INV_FACTION_KEYS.indexOf(manual) !== -1) return { target: manual, source: 'manual' };
-
-        const kind = classifyInvoiceBodyKind(body);
-        const fromMonthly = parseFactionKeyFromInvoiceText(body);
-        if (fromMonthly && INV_FACTION_KEYS.indexOf(fromMonthly) !== -1) return { target: fromMonthly, source: 'monthly' };
-
-        const kunde = parseKundeFromInvoiceText(body);
-        const plate = parsePlateFromInvoiceText(body);
-        const fromName = detectFactionKeyFromOwnerOrPlate(kunde, plate);
-        if (fromName) return { target: fromName, source: 'kunde' };
-
-        if (kind !== 'monthly' && invGetPrivatWebhook()) return { target: 'PRIVAT', source: 'privat' };
-        return { target: null, source: 'none' };
-    }
     async function tryAutoPostRepairInvoice(owner, plate, invoiceBody, kind) {
         if (!invGetAutopostRepair()) return { skipped: true };
         const fk = detectFactionKeyFromOwnerOrPlate(owner, plate);
@@ -2229,22 +1921,6 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
         const r = await postInvoiceTargetDiscord(target, invoiceBody, kind);
         if (!r.ok) alert('Discord Auto-Post (Rechnung): ' + (r.error || 'Unbekannt'));
         return r;
-    }
-    function parseFactionKeyFromInvoiceText(txt) {
-        const m = String(txt || '').match(/FRAKTION:\s+.+\(([A-Z]{2,4})\)/);
-        return m ? m[1] : null;
-    }
-    async function sendCurrentInvoiceToFactionDiscord() {
-        const body = document.getElementById('invoiceText') && document.getElementById('invoiceText').textContent;
-        if (!body || /Noch keine Rechnung/i.test(body)) return alert('Keine Rechnung im Anzeigefeld.');
-        const { target, source } = resolveInvoiceDiscordTarget(body);
-        if (!target) {
-            return alert('Kein Ziel: Bitte unter Fraktion einen Webhook für „Privat / Kunde“ speichern, oder eine Fraktion im Dropdown wählen bzw. im Kundennamen/Kennzeichen ein Kürzel (LSPD, FD, …) verwenden.');
-        }
-        const kind = classifyInvoiceBodyKind(body);
-        const r = await postInvoiceTargetDiscord(target, body, kind);
-        if (r.ok) alert('An Discord gesendet (' + (target === 'PRIVAT' ? 'Privat / Kunde' : target) + ', ' + source + ').');
-        else alert('Fehler: ' + (r.error || 'Unbekannt'));
     }
 
 
@@ -2347,7 +2023,7 @@ grant select, insert, update on public.bennys_discord_invoice_settings to anon, 
             `\n--------------------------------------------------------------\n` +
             `ANZAHL POSTEN: ${filtered.length}\n` +
             `GESAMTSUMME:   $${sum.toLocaleString('de-DE')}\n` +
-            `****************************************************************`
+            `****************************************************************\n` +
             `Betrag bitte an folgendes Konto überweisen:\n` +
             `3818 5746 8795 6653\n` +
             `****************************************************************`;
