@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v42.7</title>
+    <title>Benny's Luxury Customs - Pro Management v43</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; }
@@ -67,6 +67,7 @@
         <button id="t-members" class="tab-btn" onclick="showTab('members')">💎 VIP</button>
         <button id="t-pickup" class="tab-btn" onclick="showTab('pickup')">📋 Abholungen</button>
         <button id="t-leihwagen" class="tab-btn" onclick="showTab('leihwagen')">🚙 Leihwagen</button>
+        <button id="t-fleet" class="tab-btn" onclick="showTab('fleet')">🚘 Benny's Fuhrpark</button>
         <button id="t-database" class="tab-btn" onclick="showTab('database')">📂 Archiv</button>
         <button id="t-fraktion" class="tab-btn" onclick="showTab('fraktion')">👮 Fraktion</button>
         <button id="t-invoice" class="tab-btn" onclick="showTab('invoice')">🧾 Rechnung</button>
@@ -223,6 +224,30 @@
         </table>
     </div>
 
+    <div id="fleetSection" class="hidden">
+        <div class="archive-card">
+            <h3>Benny's Fuhrpark</h3>
+            <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Eigene Betriebsfahrzeuge. In Supabase z. B. Tabelle <code style="color:#ccc;">bennys_fuhrpark</code> (oder <code style="color:#ccc;">Bennys_Fuhrpark</code>) mit Spalten <code style="color:#ccc;">plate</code>, <code style="color:#ccc;">fahrzeugtyp</code> (alternativ <code style="color:#ccc;">label</code>), <code style="color:#ccc;">vin</code>.</p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr minmax(140px,1fr); gap:10px; align-items:end;">
+                <div class="input-group" style="margin-bottom:0;"><label>Kennzeichen</label><input type="text" id="bf_plate" placeholder="BENNY-01"></div>
+                <div class="input-group" style="margin-bottom:0;"><label>Fahrzeugtyp</label><input type="text" id="bf_typ" placeholder="z. B. Abschleppwagen"></div>
+                <div class="input-group" style="margin-bottom:0;"><label>VIN</label><input type="text" id="bf_vin" placeholder="Fahrgestellnummer"></div>
+                <button type="button" class="action-btn" onclick="saveBennysFleetVehicle()">Hinzufügen</button>
+            </div>
+        </div>
+        <table class="archive-table" style="margin-top:20px;">
+            <thead>
+                <tr>
+                    <th>Kennzeichen</th>
+                    <th>Fahrzeugtyp</th>
+                    <th>VIN</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+            <tbody id="bennysFleetTable"></tbody>
+        </table>
+    </div>
+
     <div id="databaseSection" class="hidden">
         <input type="text" id="archiveSearch" class="search-input" placeholder="🔍 Archiv durchsuchen..." onkeyup="filterArchive()">
         <div class="archive-card">
@@ -312,6 +337,8 @@
     let lastSubmittedPlate = null; // Wird für Debug-Logs genutzt (ob der gerade gespeicherte Eintrag in load() landet)
     let _loanerCarsColumnName = null; // Spaltenname in Cars, in dem der Leihwagen gespeichert wird
     let _loanerLabelColumnName = null; // Spaltenname in Leihwagen, in dem der Fahrzeugtyp/Label gespeichert wird
+    let bennysFleetCache = [];
+    let _bennysFleetTableName = null;
 
     /** Wenn die DB keine Spalte `items` hat: Posten werden an `mechanic` angehängt (Marker + Text). */
     const BENNY_ITEMS_MARK = '\n---BENNY_ITEMS---\n';
@@ -522,6 +549,8 @@
         renderCustomers();
         refreshLoanerSelect();
         renderLoanerTable();
+        await loadBennysFleetCache();
+        renderBennysFleetTable();
         const fm = document.getElementById('f_month');
         if (fm && !fm.value) {
             const d = new Date();
@@ -566,6 +595,100 @@
         return _loanerLabelColumnName;
     }
 
+    function bennysFleetTypFromRow(r) {
+        if (!r) return '';
+        return r.fahrzeugtyp || r.label || r.typ || r.vehicle || r.modell || r.fahrzeug_type || '';
+    }
+    function bennysFleetVinFromRow(r) {
+        if (!r) return '';
+        return r.vin || r.VIN || r.vehicle_identification_number || '';
+    }
+
+    async function resolveBennysFleetTableName() {
+        if (_bennysFleetTableName) return _bennysFleetTableName;
+        const candidates = ['Bennys_Fuhrpark', 'bennys_fuhrpark', 'BennysFahrzeuge', 'bennys_fahrzeuge'];
+        for (const t of candidates) {
+            const { error } = await _supabase.from(t).select('plate').limit(1);
+            // #region agent log
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_BENNYS_FLEET_TABLE',location:'index.html:resolveBennysFleetTableName',message:'probe bennys fleet table',data:{candidate:t,hasError:!!error,errorMsg:error?String(error.message||error):null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            if (!error) { _bennysFleetTableName = t; return _bennysFleetTableName; }
+        }
+        _bennysFleetTableName = 'bennys_fuhrpark';
+        return _bennysFleetTableName;
+    }
+
+    async function loadBennysFleetCache() {
+        const table = await resolveBennysFleetTableName();
+        const { data, error } = await _supabase.from(table).select('*');
+        if (error) {
+            console.warn('[Benny Fuhrpark]', error.message || error);
+            bennysFleetCache = [];
+            return;
+        }
+        bennysFleetCache = (data || []).slice().sort((a, b) => String(a.plate || '').localeCompare(String(b.plate || ''), 'de'));
+    }
+
+    function renderBennysFleetTable() {
+        const tbody = document.getElementById('bennysFleetTable');
+        if (!tbody) return;
+        tbody.innerHTML = bennysFleetCache.length ? bennysFleetCache.map((r, idx) => `
+            <tr>
+                <td><b>${escHtml(r.plate)}</b></td>
+                <td>${escHtml(bennysFleetTypFromRow(r)) || '–'}</td>
+                <td style="font-family:Consolas,'Courier New',monospace; font-size:0.9rem;">${escHtml(bennysFleetVinFromRow(r)) || '–'}</td>
+                <td><button type="button" class="danger-btn" style="padding:6px 12px; width:auto;" onclick="deleteBennysFleetVehicle(${idx})">Löschen</button></td>
+            </tr>`).join('') : '<tr><td colspan="4" style="color:#888;">Noch keine Fahrzeuge – oben anlegen. Falls Fehler: Tabelle in Supabase anlegen (siehe Hinweis oben).</td></tr>';
+    }
+
+    async function saveBennysFleetVehicle() {
+        const plate = document.getElementById('bf_plate').value.trim().toUpperCase();
+        const typ = document.getElementById('bf_typ').value.trim();
+        const vin = document.getElementById('bf_vin').value.trim();
+        if (!plate) return alert('Kennzeichen eingeben.');
+        const table = await resolveBennysFleetTableName();
+        let payload = { plate, fahrzeugtyp: typ || null, vin: vin || null };
+        let { error } = await _supabase.from(table).insert([payload]);
+        if (error && /fahrzeugtyp/i.test(String(error.message || ''))) {
+            const { fahrzeugtyp: _f, ...rest } = payload;
+            payload = { ...rest, label: typ || null };
+            ({ error } = await _supabase.from(table).insert([payload]));
+        }
+        if (error && /label/i.test(String(error.message || ''))) {
+            const { label: _l, ...rest } = payload;
+            payload = { ...rest, typ: typ || null };
+            ({ error } = await _supabase.from(table).insert([payload]));
+        }
+        if (error && /\btyp\b/i.test(String(error.message || ''))) {
+            const { typ: _t, ...rest } = payload;
+            payload = { ...rest };
+            ({ error } = await _supabase.from(table).insert([payload]));
+        }
+        if (error && /vin/i.test(String(error.message || ''))) {
+            const { vin: _v, ...rest } = payload;
+            payload = { ...rest };
+            ({ error } = await _supabase.from(table).insert([payload]));
+        }
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_BENNYS_FLEET_SAVE',location:'index.html:saveBennysFleetVehicle',message:'bennys fleet insert',data:{table,plate,hasError:!!error,errorMsg:error?String(error.message||error):null,payloadKeys:Object.keys(payload)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        if (error) return alert('Speichern fehlgeschlagen: ' + (error.message || error));
+        document.getElementById('bf_plate').value = '';
+        document.getElementById('bf_typ').value = '';
+        document.getElementById('bf_vin').value = '';
+        load();
+    }
+
+    async function deleteBennysFleetVehicle(idx) {
+        const r = bennysFleetCache[idx];
+        if (!r) return;
+        if (!confirm('Fahrzeug ' + r.plate + ' wirklich löschen?')) return;
+        const table = await resolveBennysFleetTableName();
+        const { error } = await _supabase.from(table).delete().eq('plate', r.plate);
+        if (error) return alert('Löschen fehlgeschlagen: ' + (error.message || error));
+        load();
+    }
+
     /** Live-Updates: In Supabase unter Database → Publications „supabase_realtime“ die Tabellen Cars & Members hinzufügen (oder Table → Realtime einschalten). */
     let _realtimeReloadTimer = null;
     function scheduleReloadFromRealtime() {
@@ -577,9 +700,14 @@
             .on('postgres_changes', { event: '*', schema: 'public', table: 'Cars' }, scheduleReloadFromRealtime)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'Members' }, scheduleReloadFromRealtime)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'Leihwagen' }, scheduleReloadFromRealtime)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'leihwagen' }, scheduleReloadFromRealtime)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'bennys_fuhrpark' }, scheduleReloadFromRealtime)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'Bennys_Fuhrpark' }, scheduleReloadFromRealtime)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'BennysFahrzeuge' }, scheduleReloadFromRealtime)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'bennys_fahrzeuge' }, scheduleReloadFromRealtime)
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') console.log('[Realtime] verbunden – Änderungen von Kollegen werden automatisch geladen.');
-                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('[Realtime] Problem:', status, '– Prüfe in Supabase, ob Realtime für Cars/Members/Leihwagen aktiv ist.');
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('[Realtime] Problem:', status, '– Prüfe in Supabase, ob Realtime für Cars/Members/Leihwagen/Fuhrpark aktiv ist.');
             });
     }
 
@@ -1267,7 +1395,7 @@
     }
 
     function showTab(t) {
-        ['workshop','impound','customers','members','pickup','leihwagen','database','fraktion','invoice'].forEach(s => { if(document.getElementById(s+'Section')) document.getElementById(s+'Section').classList.add('hidden'); });
+        ['workshop','impound','customers','members','pickup','leihwagen','fleet','database','fraktion','invoice'].forEach(s => { if(document.getElementById(s+'Section')) document.getElementById(s+'Section').classList.add('hidden'); });
         document.getElementById(t+'Section').classList.remove('hidden');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('t-'+t).classList.add('active');
@@ -1277,6 +1405,7 @@
         if (t === 'fraktion' && document.getElementById('f_select').value) generateGroupInvoice();
         if (t === 'members') renderMembers();
         if (t === 'leihwagen') renderLoanerTable();
+        if (t === 'fleet') { void loadBennysFleetCache().then(() => renderBennysFleetTable()); }
     }
 
     function filterArchive() {
