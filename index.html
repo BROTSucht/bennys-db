@@ -2,15 +2,26 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v43</title>
+    <title>Benny's Luxury Customs - Pro Management v42.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; }
+        :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; --sb-track: #1a1a1a; --sb-thumb: #3d3d3d; --sb-thumb-hover: #4f4f4f; }
+        html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
+        body::-webkit-scrollbar { width: 10px; height: 10px; }
+        body::-webkit-scrollbar-track { background: var(--bennys-dark); }
+        body::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 6px; border: 2px solid var(--bennys-dark); }
+        body::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); }
+        body::-webkit-scrollbar-corner { background: var(--bennys-dark); }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
         .container { max-width: 1450px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
         
         /* Navigation */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); overflow-x: auto; padding-bottom: 5px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
+        .tabs::-webkit-scrollbar { height: 7px; }
+        .tabs::-webkit-scrollbar-track { background: var(--sb-track); border-radius: 4px; }
+        .tabs::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 4px; }
+        .tabs::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); }
+        .tabs::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
         .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; white-space: nowrap; }
         .tab-btn.active { color: var(--bennys-yellow); border-bottom: 4px solid var(--bennys-yellow); }
 
@@ -29,8 +40,8 @@
         /* Formulare */
         .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
         label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; }
-        input, select { padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 5px; font-size: 1rem; }
-        input:focus { border-color: var(--bennys-yellow); outline: none; }
+        input, select, textarea { padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 5px; font-size: 1rem; }
+        input:focus, textarea:focus { border-color: var(--bennys-yellow); outline: none; }
         
         button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; font-size: 1rem; }
         button.danger-btn { background: var(--impound-red); color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; width: 100%; margin-top: 10px; font-weight: bold; text-transform: uppercase; }
@@ -49,7 +60,13 @@
         .pickup-deadline-line { color: var(--bennys-yellow); font-weight: bold; margin-top: 6px; font-size: 0.95rem; }
         .pickup-countdown { color: #9cf; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.9rem; margin-top: 4px; display: block; }
 
-        #invoiceText { background: white; color: black; padding: 40px; font-family: 'Courier New', monospace; border-radius: 5px; white-space: pre; border: 2px solid #ccc; font-size: 13px; line-height: 1.2; }
+        #invoiceText { background: white; color: black; padding: 40px; font-family: 'Courier New', monospace; border-radius: 5px; white-space: pre-wrap; overflow-x: auto; margin: 0; border: 2px solid #ccc; font-size: 13px; line-height: 1.35; box-sizing: border-box; width: 100%; max-width: 100%; scrollbar-width: thin; scrollbar-color: #666 #eee; }
+        #invoiceText::-webkit-scrollbar { height: 8px; width: 8px; }
+        #invoiceText::-webkit-scrollbar-track { background: #eee; border-radius: 4px; }
+        #invoiceText::-webkit-scrollbar-thumb { background: #999; border-radius: 4px; }
+        #invoiceText::-webkit-scrollbar-thumb:hover { background: #777; }
+        #workshopRepairsWrap.workshop-repairs-wrap { display: contents; }
+        #workshopRepairsWrap.workshop-repairs-hidden { display: none !important; }
         .search-input { width: 100%; padding: 15px; margin-bottom: 20px; background: #000; border: 1px solid var(--bennys-yellow); color: white; border-radius: 5px; box-sizing: border-box; }
         
         .storage-info { color: #888; font-size: 0.75rem; margin-top: 10px; font-style: italic; border-top: 1px solid #333; padding-top: 10px; }
@@ -71,16 +88,28 @@
         <button id="t-database" class="tab-btn" onclick="showTab('database')">📂 Archiv</button>
         <button id="t-fraktion" class="tab-btn" onclick="showTab('fraktion')">👮 Fraktion</button>
         <button id="t-invoice" class="tab-btn" onclick="showTab('invoice')">🧾 Rechnung</button>
+        <button id="t-provision" class="tab-btn" onclick="showTab('provision')">💰 Provision</button>
     </div>
 
     <div id="workshopSection">
+        <div class="archive-card" style="margin-bottom:20px; border:1px solid var(--bennys-yellow);">
+            <h3 style="margin:0 0 10px 0; color:var(--bennys-yellow); font-size:1.05rem;">Schritt 1 — Mechaniker</h3>
+            <p style="color:#888; font-size:0.85rem; margin:0 0 14px 0;">Wähle zuerst den Mechaniker. <strong>Danach</strong> erscheinen die Reparaturposten und die Preis-Kalkulation rechts.</p>
+            <div class="input-group" style="margin-bottom:12px;">
+                <label>Mechaniker</label>
+                <select id="workshop_mech_select" style="width:100%; max-width:520px; box-sizing:border-box;" onchange="onWorkshopMechanicSelectChange()"></select>
+            </div>
+            <div id="workshop_mech_manual_wrap" class="hidden input-group" style="margin-bottom:0;">
+                <label>Name manuell</label>
+                <input type="text" id="p_mechanic" placeholder="Name des Mechanikers" style="width:100%; max-width:520px; box-sizing:border-box;" oninput="onWorkshopMechanicManualInput()">
+            </div>
+        </div>
         <div class="repair-layout">
             <div class="info-pane">
                 <div class="input-group"><label>Kennzeichen</label><input type="text" id="p_plate" placeholder="LSPD-01" oninput="refreshLoanerSelect()"></div>
                 <div class="input-group"><label>Modell</label><input type="text" id="p_model" list="vehicleList" oninput="updateVehiclePrices()" placeholder="Modell suchen..."></div>
                 <div class="input-group"><label>Besitzer (Name)</label><input type="text" id="p_owner" placeholder="Vorname Nachname" oninput="checkAutoMember()"></div>
                 <div class="input-group"><label>Telefonnummer</label><input type="text" id="p_phone" placeholder="555-1234"></div>
-                <div class="input-group"><label>Mechaniker</label><input type="text" id="p_mechanic" placeholder="Dein Name"></div>
                 <div class="input-group"><label>Abholbar bis (Datum &amp; Uhrzeit)</label><input type="datetime-local" id="p_pickup_deadline" onchange="calculatePrice()"></div>
                 <div class="input-group"><label>Mitgliedschaft</label>
                     <select id="p_member" onchange="calculatePrice()">
@@ -105,6 +134,7 @@
                 <button class="danger-btn" onclick="submitToImpound()">Ins Impound schicken</button>
             </div>
 
+            <div id="workshopRepairsWrap" class="workshop-repairs-wrap workshop-repairs-hidden">
             <div class="damage-grid" id="damageList">
                 <div style="grid-column: 1 / -1; border-bottom: 2px solid var(--bennys-yellow); margin: 20px 0 10px 0; padding-bottom: 5px; color: var(--bennys-yellow); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">🚗 Karosserie</div>
                 <div class="damage-item"><span>Ausbeulen ($<small id="p_ausbeulen">500</small>)</span> <input type="checkbox" data-key="ausbeulen" value="500" onchange="calculatePrice()"></div>
@@ -167,6 +197,7 @@
                 <button class="action-btn" onclick="submitRepair()">Reparatur Speichern</button>
                 <button class="danger-btn" style="background:#444" onclick="location.reload()">Formular Leeren</button>
                 <div class="storage-info">Standzeit: max. 24h nach Fertigstellung (Abhol-frist).<br> Danach $25 Gebühr / Tag.<br> Länger als 24h nach Abhol-frist ohne Abholung → automatisch Impound.</div>
+            </div>
             </div>
         </div>
     </div>
@@ -280,15 +311,97 @@
             </div>
             <button type="button" class="action-btn" style="margin-bottom:16px;" onclick="generateMonthlyClosingInvoice()">Monatsabschluss-Rechnung erstellen</button>
             <button type="button" class="danger-btn" style="margin-bottom:16px; background:#444;" onclick="clearFraktionOverview()">Fraktions-Übersicht leeren</button>
+            <details style="margin:0 0 16px 0; color:#ccc; border:1px solid #444; border-radius:8px; padding:12px; background:#1a1a1a;">
+                <summary style="cursor:pointer; color:var(--bennys-yellow); font-weight:bold; user-select:none;">Discord: Fraktions-Rechnungen (LSPD/PD, FD, …)</summary>
+                <p style="font-size:0.8rem; color:#888; margin:12px 0;">Je Fraktion einen <strong>Webhook</strong> aus dem jeweiligen Kanal. Zusätzlich <strong>Privat / normale Kunden</strong>: eigener Webhook für Werkstatt- und Impound-Rechnungen ohne Fraktions-Kürzel im Namen oder Kennzeichen. <strong>Monatsabschluss</strong> geht nur an Fraktions-Webhooks. Auto-Post optional (siehe Häkchen). Webhooks nur lokal im Browser.</p>
+                <div style="border:1px solid #444; border-radius:8px; padding:12px; margin-bottom:14px; background:#111;">
+                    <p style="font-size:0.8rem; color:#aaa; margin:0 0 10px 0;"><strong>Passwortschutz:</strong> Nach dem Setzen eines Anzeige-Passworts werden Webhook-URLs <strong>nicht</strong> in die Felder geladen, bis du das Passwort einträgst und <strong>Anzeigen</strong> wählst (nur diese Browser-Sitzung). <strong>Verbergen</strong> leert die Felder wieder. Ohne gesetztes Passwort verhält sich alles wie zuvor.</p>
+                    <div id="inv_wh_set_pass_wrap" style="display:none; margin-bottom:12px;">
+                        <p style="font-size:0.75rem; color:#fa0; margin:0 0 8px 0;">Noch kein Anzeige-Passwort — optional setzen, um URLs zu verstecken:</p>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                            <div class="input-group" style="margin:0;"><label style="font-size:0.75rem;">Anzeige-Passwort (neu)</label><input type="password" id="inv_wh_set_pass" autocomplete="new-password" style="width:100%; box-sizing:border-box;"></div>
+                            <div class="input-group" style="margin:0;"><label style="font-size:0.75rem;">Wiederholung</label><input type="password" id="inv_wh_set_pass2" autocomplete="new-password" style="width:100%; box-sizing:border-box;"></div>
+                        </div>
+                        <button type="button" class="action-btn" style="width:auto; padding:10px 16px;" onclick="invSaveNewViewPassword()">Passwort setzen &amp; Felder sperren</button>
+                    </div>
+                    <div id="inv_wh_unlock_row" style="display:none; grid-template-columns:1fr auto auto; gap:8px; align-items:end;">
+                        <div class="input-group" style="margin:0;">
+                            <label style="font-size:0.75rem;">Passwort zum Anzeigen der Webhooks</label>
+                            <input type="password" id="inv_wh_unlock_pass" autocomplete="off" style="width:100%; box-sizing:border-box;" placeholder="Passwort eingeben …">
+                        </div>
+                        <button type="button" class="action-btn" style="width:auto; padding:12px 16px;" onclick="invTryUnlockWebhooks()">Anzeigen</button>
+                        <button type="button" class="danger-btn" style="width:auto; padding:12px 16px; background:#444;" onclick="invLockWebhooksUi()">Verbergen</button>
+                    </div>
+                    <p id="inv_wh_lock_hint" style="font-size:0.75rem; color:#888; margin:10px 0 0 0;"></p>
+                    <button type="button" id="inv_wh_remove_protect_btn" onclick="invRemoveViewPasswordAfterUnlock()" style="display:none; margin-top:10px; font-size:0.75rem; color:#c98; background:none; border:none; cursor:pointer; text-decoration:underline;">Passwortschutz dauerhaft entfernen…</button>
+                </div>
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:0.9rem; cursor:pointer;">
+                    <input type="checkbox" id="inv_disc_autopost"> Beim Monatsabschluss automatisch an Discord senden
+                </label>
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:0.9rem; cursor:pointer;">
+                    <input type="checkbox" id="inv_disc_autopost_repair"> Nach Werkstatt-Speichern / Impound-Auslöse automatisch (Fraktions-Kanal oder Privat-Webhook)
+                </label>
+                <div id="inv_wh_fields_wrap" style="display:grid; grid-template-columns:minmax(100px,140px) 1fr; gap:10px; align-items:center;">
+                    <label style="font-size:0.75rem; color:#9cf;">Privat / Kunde</label><input type="password" id="inv_wh_privat" placeholder="Webhook für normale Kundenrechnungen" autocomplete="off" style="width:100%; box-sizing:border-box;">
+                    <label style="font-size:0.75rem; color:#aaa;">LSPD (PD)</label><input type="password" id="inv_wh_LSPD" placeholder="https://discord.com/api/webhooks/…" autocomplete="off" style="width:100%; box-sizing:border-box;">
+                    <label style="font-size:0.75rem; color:#aaa;">MD</label><input type="password" id="inv_wh_MD" placeholder="Webhook Medical" autocomplete="off" style="width:100%; box-sizing:border-box;">
+                    <label style="font-size:0.75rem; color:#aaa;">FD</label><input type="password" id="inv_wh_FD" placeholder="Webhook Fire Dept" autocomplete="off" style="width:100%; box-sizing:border-box;">
+                    <label style="font-size:0.75rem; color:#aaa;">DOJ</label><input type="password" id="inv_wh_DOJ" placeholder="Webhook DOJ" autocomplete="off" style="width:100%; box-sizing:border-box;">
+                    <label style="font-size:0.75rem; color:#aaa;">PMG</label><input type="password" id="inv_wh_PMG" placeholder="Webhook PMG" autocomplete="off" style="width:100%; box-sizing:border-box;">
+                </div>
+                <button type="button" class="action-btn" style="margin-top:14px;" onclick="saveInvoiceDiscordSettings()">Discord-Einstellungen speichern</button>
+                <p id="inv_disc_status" style="margin-top:10px; font-size:0.85rem; color:#9cf;"></p>
+            </details>
             <div id="groupResult"></div>
         </div>
     </div>
 
     <div id="invoiceSection" class="hidden">
         <div class="archive-card" style="background:#333;">
+            <div class="input-group" style="margin-bottom:12px;">
+                <label style="color:#aaa;">Discord — Ziel (Fraktion oder Privat-Kunden)</label>
+                <select id="inv_manual_faction_override" style="width:100%; box-sizing:border-box;">
+                    <option value="">— automatisch (Monatsrechnung / Fraktion im Text / sonst Privat-Webhook) —</option>
+                    <option value="PRIVAT">Privat / normale Kunden</option>
+                    <option value="LSPD">LSPD (PD)</option>
+                    <option value="MD">MD</option>
+                    <option value="FD">FD</option>
+                    <option value="DOJ">DOJ</option>
+                    <option value="PMG">PMG</option>
+                </select>
+            </div>
             <button class="action-btn" style="margin-bottom:15px;" onclick="copyInvoice()">Kopieren für Discord / Ingame</button>
+            <button type="button" class="action-btn" style="margin-bottom:15px; background:#5865F2; color:#fff;" onclick="sendCurrentInvoiceToFactionDiscord()">An Discord senden</button>
             <button type="button" class="danger-btn" style="margin-bottom:15px; background:#444;" onclick="clearInvoiceDisplay()">Rechnung / Sammelrechnung leeren</button>
-            <div id="invoiceText">Noch keine Rechnung generiert...</div>
+            <pre id="invoiceText">Noch keine Rechnung generiert...</pre>
+        </div>
+    </div>
+
+    <div id="provisionSection" class="hidden">
+        <div class="archive-card">
+            <h3>Mitarbeiter-Provision (5&nbsp;% vom Rechnungsbetrag)</h3>
+            <p style="color:#888; font-size:0.85rem; margin:0 0 14px 0;">Liste aus dem Archiv (<code style="color:#ccc;">Cars</code>): wer welches Fahrzeug bearbeitet hat und die berechnete Provision (ohne gesperrte Namen wie <strong>Mathias</strong>). <strong>„Als bezahlt / erledigt“</strong> speichert nur <strong>lokal in diesem Browser</strong> — die Zeile <strong>verschwindet</strong> aus der Tabelle. Mit <strong>„Erledigt-Liste komplett leeren“</strong> erscheinen bezahlte Einträge wieder (sofern nicht gefiltert). Die Datenbank bleibt unverändert.</p>
+            <input type="text" id="prov_search" class="search-input" placeholder="🔍 Mechaniker, Kennzeichen oder Kunde filtern…" onkeyup="renderProvisionTab()">
+            <p id="prov_summary" style="margin:12px 0; font-size:0.95rem;"></p>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                <button type="button" class="action-btn" style="width:auto; padding:12px 18px;" onclick="markAllFilteredProvisionCleared()">Alle <strong>offenen</strong> markieren (bezahlt)</button>
+                <button type="button" class="danger-btn" style="width:auto; padding:12px 18px; background:#444;" onclick="resetProvisionClearedAll()">Erledigt-Liste komplett leeren</button>
+            </div>
+            <table class="archive-table">
+                <thead>
+                    <tr>
+                        <th>Letzte Reparatur</th>
+                        <th>KFZ</th>
+                        <th>Kunde</th>
+                        <th>Mechaniker</th>
+                        <th>Rechnung</th>
+                        <th>Provision (5&nbsp;%)</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="prov_table"></tbody>
+            </table>
         </div>
     </div>
 
@@ -363,6 +476,14 @@
     function paymentWhenLabel(code) {
         if (code === 'vorher') return 'Vorher zahlen (Vorkasse)';
         return 'Bei Abholung zahlen';
+    }
+
+    /** Entfernt CR / Unicode-Zeilenumbrüche aus Formularwerten — verhindert „zusammenklebende“ Rechnungszeilen im Anzeigefeld. */
+    function sanitizeInvoiceTextPart(s) {
+        return String(s == null ? '' : s)
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(/[\u2028\u2029]/g, '\n');
     }
 
     /** ISO-Zeitpunkt für Abhol-Countdown: DB-Feld oder Fallback 24h nach letzter Reparatur */
@@ -507,6 +628,18 @@
         // #endregion
         if (carsErr) console.error('[Cars select]', carsErr);
         dataCache = sorted;
+        // #region agent log
+        (function () {
+            const up = (s) => String(s || '').toUpperCase().trim();
+            let pmgByPlate = 0, pmgByOwner = 0;
+            sorted.forEach(c => {
+                const p = up(c.plate), o = up(c.owner);
+                if (p === 'PMG' || p.startsWith('PMG-') || p.startsWith('PMG ')) pmgByPlate++;
+                if (o.includes('PMG')) pmgByOwner++;
+            });
+            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:load:pmgAudit',message:'PMG-related rows in Cars payload',data:{hypothesisId:'H_PMG_ROWS',totalRows:sorted.length,pmgByPlate,pmgByOwner,fraktionMatchPMG:sorted.filter(c=>factionMatchesOwner('PMG',c.owner,c.plate)).length},timestamp:Date.now()})}).catch(()=>{});
+        })();
+        // #endregion
         const movedImpound = await sweepStalePickupsToImpound();
         if (movedImpound > 0) {
             const { data: cDataFresh, error: freshErr } = await _supabase.from('Cars').select('*');
@@ -551,6 +684,8 @@
         renderLoanerTable();
         await loadBennysFleetCache();
         renderBennysFleetTable();
+        renderProvisionTab();
+        refreshWorkshopMechanicDropdown();
         const fm = document.getElementById('f_month');
         if (fm && !fm.value) {
             const d = new Date();
@@ -716,6 +851,226 @@
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     }
 
+    /** Auswahl & Provision: diese Namen nicht anzeigen (exakt, Groß/Klein egal). */
+    function bennyBlockedMechanicNamesLower() {
+        const fixed = ['mathias'];
+        let extra = [];
+        try {
+            const raw = localStorage.getItem('bennys_hidden_mechanic_names_v1');
+            if (raw) extra = JSON.parse(raw);
+        } catch (_) { extra = []; }
+        const set = new Set(fixed);
+        if (Array.isArray(extra)) {
+            extra.forEach(x => {
+                const s = String(x || '').trim().toLowerCase();
+                if (s) set.add(s);
+            });
+        }
+        return set;
+    }
+    function isMechanicNameBlocked(rawName) {
+        const n = String(rawName || '').trim().toLowerCase();
+        if (!n) return false;
+        return bennyBlockedMechanicNamesLower().has(n);
+    }
+
+    function uniqueMechanicsFromDataCache() {
+        const set = new Set();
+        (dataCache || []).forEach(c => {
+            const n = (mechanicNameOnly(c.mechanic) || '').trim();
+            if (n && !isMechanicNameBlocked(n)) set.add(n);
+        });
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'de'));
+    }
+    function refreshWorkshopMechanicDropdown() {
+        const sel = document.getElementById('workshop_mech_select');
+        if (!sel) return;
+        const prev = sel.value;
+        const names = uniqueMechanicsFromDataCache();
+        sel.innerHTML = '';
+        const o0 = document.createElement('option');
+        o0.value = '';
+        o0.textContent = '— Mechaniker wählen —';
+        sel.appendChild(o0);
+        names.forEach(n => {
+            const o = document.createElement('option');
+            o.value = n;
+            o.textContent = n;
+            sel.appendChild(o);
+        });
+        const om = document.createElement('option');
+        om.value = '__manual__';
+        om.textContent = 'Anderer / manuell eingeben…';
+        sel.appendChild(om);
+        if (prev === '__manual__' || (prev && names.includes(prev))) sel.value = prev;
+        else if (document.getElementById('p_mechanic')) {
+            const cur = String(document.getElementById('p_mechanic').value || '').trim();
+            if (cur && names.includes(cur)) sel.value = cur;
+            else if (cur) {
+                sel.value = '__manual__';
+            }
+        }
+        const mw = document.getElementById('workshop_mech_manual_wrap');
+        if (sel.value === '__manual__') { if (mw) mw.classList.remove('hidden'); }
+        else { if (mw) mw.classList.add('hidden'); }
+        syncWorkshopRepairsVisibility();
+    }
+    function setWorkshopRepairsVisible(show) {
+        const wrap = document.getElementById('workshopRepairsWrap');
+        if (!wrap) return;
+        if (show) {
+            wrap.classList.remove('workshop-repairs-hidden');
+        } else {
+            wrap.classList.add('workshop-repairs-hidden');
+            document.querySelectorAll('#damageList input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+            const tq = document.getElementById('p_fahrzeugueberfuehrung_qty');
+            if (tq) tq.value = 0;
+            calculatePrice();
+        }
+    }
+    function syncWorkshopRepairsVisibility() {
+        const sel = document.getElementById('workshop_mech_select');
+        const mechInp = document.getElementById('p_mechanic');
+        if (!sel || !mechInp) return;
+        const v = sel.value;
+        if (v === '__manual__') {
+            setWorkshopRepairsVisible(!!mechInp.value.trim());
+            return;
+        }
+        setWorkshopRepairsVisible(!!v.trim());
+    }
+    function onWorkshopMechanicSelectChange() {
+        const sel = document.getElementById('workshop_mech_select');
+        const manualWrap = document.getElementById('workshop_mech_manual_wrap');
+        const mechInp = document.getElementById('p_mechanic');
+        if (!sel || !mechInp) return;
+        const v = sel.value;
+        if (!v) {
+            if (manualWrap) manualWrap.classList.add('hidden');
+            mechInp.value = '';
+            setWorkshopRepairsVisible(false);
+            return;
+        }
+        if (v === '__manual__') {
+            if (manualWrap) manualWrap.classList.remove('hidden');
+            mechInp.value = '';
+            setWorkshopRepairsVisible(false);
+            mechInp.focus();
+            return;
+        }
+        if (manualWrap) manualWrap.classList.add('hidden');
+        mechInp.value = v;
+        syncWorkshopRepairsVisibility();
+    }
+    function onWorkshopMechanicManualInput() {
+        const sel = document.getElementById('workshop_mech_select');
+        if (!sel || sel.value !== '__manual__') return;
+        syncWorkshopRepairsVisibility();
+    }
+
+    const STAFF_PROVISION_RATE = 0.05;
+    const PROVISION_CLEARED_STORAGE = 'bennys_provision_cleared_v1';
+
+    function provisionRowKey(c) {
+        return `${String(c.plate || '').trim().toUpperCase()}|${String(c.last_repair_date || '').trim()}`;
+    }
+    function provisionReadClearedMap() {
+        try { return JSON.parse(localStorage.getItem(PROVISION_CLEARED_STORAGE) || '{}'); } catch (_) { return {}; }
+    }
+    function provisionWriteClearedMap(obj) {
+        localStorage.setItem(PROVISION_CLEARED_STORAGE, JSON.stringify(obj && typeof obj === 'object' ? obj : {}));
+    }
+    function provisionCarCostNum(c) {
+        return parseInt(String(c.cost || '').replace(/[^0-9]/g, ''), 10) || 0;
+    }
+    function provisionAmountForCar(c) {
+        return Math.round(provisionCarCostNum(c) * STAFF_PROVISION_RATE);
+    }
+    function provisionFilteredRows() {
+        const term = String(document.getElementById('prov_search') && document.getElementById('prov_search').value || '').toLowerCase().trim();
+        let list = (dataCache || []).slice();
+        if (term) {
+            list = list.filter(c => {
+                const mech = (mechanicNameOnly(c.mechanic) || '').toLowerCase();
+                const plate = String(c.plate || '').toLowerCase();
+                const owner = String(c.owner || '').toLowerCase();
+                return mech.includes(term) || plate.includes(term) || owner.includes(term);
+            });
+        }
+        list.sort((a, b) => {
+            const ta = a.last_repair_date ? new Date(a.last_repair_date).getTime() : 0;
+            const tb = b.last_repair_date ? new Date(b.last_repair_date).getTime() : 0;
+            return tb - ta;
+        });
+        return list.filter(c => !isMechanicNameBlocked(mechanicNameOnly(c.mechanic)));
+    }
+    function renderProvisionTab() {
+        const tb = document.getElementById('prov_table');
+        const sumEl = document.getElementById('prov_summary');
+        if (!tb) return;
+        const cleared = provisionReadClearedMap();
+        const rowsAll = provisionFilteredRows();
+        const rows = rowsAll.filter(c => !cleared[provisionRowKey(c)]);
+        const paidHidden = rowsAll.length - rows.length;
+        let openTotal = 0;
+        rows.forEach(c => { openTotal += provisionAmountForCar(c); });
+        if (sumEl) {
+            let extra = '';
+            if (paidHidden > 0) extra = ' · <span style="color:#888;">' + paidHidden + ' bezahlt (ausgeblendet)</span>';
+            sumEl.innerHTML = '<span style="color:#0f0;font-weight:bold;">Offene Provision (Filter): $' + openTotal.toLocaleString('de-DE') + '</span> · <span style="color:#888;">Offen: ' + rows.length + '</span>' + extra;
+        }
+        if (!rows.length) {
+            tb.innerHTML = '<tr><td colspan="8" style="color:#888;">' + (rowsAll.length ? 'Keine offenen Provisionen (alle erledigt oder gefiltert).' : 'Keine Daten.') + '</td></tr>';
+            return;
+        }
+        tb.innerHTML = rows.map(c => {
+            const key = provisionRowKey(c);
+            const keyAttr = escHtml(encodeURIComponent(key));
+            const mech = escHtml(mechanicNameOnly(c.mechanic)) || '–';
+            const plat = escHtml(String(c.plate || '–'));
+            const own = escHtml(String(c.owner || '–'));
+            const cost = escHtml(String(c.cost || '$0'));
+            const prov = provisionAmountForCar(c);
+            const dt = c.last_repair_date ? new Date(c.last_repair_date).toLocaleString('de-DE') : '–';
+            const stat = escHtml(String(c.status || '–'));
+            const btn = '<button type="button" class="danger-btn" style="padding:8px 12px;width:auto;display:inline-block;background:#444;" data-prov-key="' + keyAttr + '" onclick="markProvisionClearedFromBtn(this)">Als bezahlt / erledigt</button>';
+            return '<tr>' +
+                '<td style="white-space:nowrap;">' + dt + '</td>' +
+                '<td><b>' + plat + '</b></td>' +
+                '<td>' + own + '</td>' +
+                '<td>' + mech + '</td>' +
+                '<td>' + cost + '</td>' +
+                '<td style="color:#ffcc00;font-weight:bold;">$' + prov.toLocaleString('de-DE') + '</td>' +
+                '<td>' + stat + '</td>' +
+                '<td style="text-align:right;">' + btn + '</td>' +
+                '</tr>';
+        }).join('');
+    }
+    function markProvisionClearedFromBtn(btn) {
+        const raw = btn && btn.getAttribute('data-prov-key');
+        if (!raw) return;
+        const key = decodeURIComponent(raw);
+        const m = provisionReadClearedMap();
+        m[key] = 1;
+        provisionWriteClearedMap(m);
+        renderProvisionTab();
+    }
+    function markAllFilteredProvisionCleared() {
+        const cleared = provisionReadClearedMap();
+        const rows = provisionFilteredRows().filter(c => !cleared[provisionRowKey(c)]);
+        if (!rows.length) return alert('Keine offenen Provisionen in der aktuellen Ansicht.');
+        if (!confirm(rows.length + ' offene Provision(en) als bezahlt markieren? (Zeilen verschwinden danach.)')) return;
+        const m = provisionReadClearedMap();
+        rows.forEach(c => { m[provisionRowKey(c)] = 1; });
+        provisionWriteClearedMap(m);
+        renderProvisionTab();
+    }
+    function resetProvisionClearedAll() {
+        if (!confirm('Alle lokalen „Provision erledigt“-Markierungen löschen?')) return;
+        localStorage.removeItem(PROVISION_CLEARED_STORAGE);
+        renderProvisionTab();
+    }
+
     /** Leihwagen gilt als „vergeben“, wenn ein anderer Auftrag (Cars) noch offen ist und diesen Leihwagen hat. */
     function isLoanerReservedByOtherOpenCar(loanerPlate) {
         if (!loanerPlate) return false;
@@ -870,7 +1225,7 @@
     function clearInvoiceDisplay() {
         const el = document.getElementById('invoiceText');
         if (!el) return;
-        el.innerText = 'Noch keine Rechnung generiert...';
+        el.textContent = 'Noch keine Rechnung generiert...';
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_CLEAR_INVOICE',location:'index.html:clearInvoiceDisplay',message:'invoice text cleared by user',data:{},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
@@ -887,8 +1242,9 @@
     function generateCustomerList() {
         const customers = {};
         dataCache.forEach(car => {
-            if(!car.owner) return;
-            if(!customers[car.owner]) customers[car.owner] = { name: car.owner, phone: car.phone || 'N/A' };
+            const key = String(car.owner == null ? '' : car.owner).trim();
+            if (!key) return;
+            if (!customers[key]) customers[key] = { name: key, phone: car.phone || 'N/A' };
         });
         customerCache = Object.values(customers);
     }
@@ -913,7 +1269,7 @@
 
     // Zeigt die detaillierte Historie eines Kunden inkl. der gemachten Posten
     function showCustomerDetails(name) {
-        const history = dataCache.filter(r => r.owner === name);
+        const history = dataCache.filter(r => String(r.owner || '').trim() === String(name || '').trim());
         const detailDiv = document.getElementById('customerDetailView');
         let html = `<div class="archive-card" style="border:2px solid var(--bennys-yellow); margin-top:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -949,7 +1305,9 @@
         let base = 0; let items = [];
         document.querySelectorAll('#damageList input:checked').forEach(c => {
             let val = parseFloat(c.value); base += val;
-            items.push({ name: c.parentElement.innerText.split('(')[0].trim(), price: val });
+            let rawName = c.parentElement.innerText.split('(')[0].trim();
+            rawName = sanitizeInvoiceTextPart(rawName).replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            items.push({ name: rawName, price: val });
         });
 
         // Mehrfach-Posten: Fahrzeugüberführung (Menge)
@@ -983,41 +1341,54 @@
         const now = new Date();
         const pu = document.getElementById('p_pickup_deadline').value;
         const deadline = pu ? new Date(pu) : new Date(now.getTime() + (24 * 60 * 60 * 1000));
-        const plate = document.getElementById('p_plate').value || "---";
-        const owner = document.getElementById('p_owner').value || "---";
+        const plate = sanitizeInvoiceTextPart(document.getElementById('p_plate').value || '---');
+        const owner = sanitizeInvoiceTextPart(document.getElementById('p_owner').value || '---');
         const payWhen = document.getElementById('p_payment_when').value;
         const loanerPlate = document.getElementById('p_loaner').value;
-        let loanerLine = '';
+        const dateStr = sanitizeInvoiceTextPart(now.toLocaleString('de-DE'));
+        const payLabel = sanitizeInvoiceTextPart(paymentWhenLabel(payWhen));
+
+        const out = [
+            '********************************************',
+            "         BENNY'S ORIGINAL MOTORWORKS        ",
+            '********************************************',
+            'DATUM:    ' + dateStr,
+            'KUNDE:    ' + owner,
+            'KFZ:      ' + plate
+        ];
         if (loanerPlate) {
             const lr = loanerCache.find(x => x.plate === loanerPlate);
             const lwLabelCol = _loanerLabelColumnName || 'label';
-            loanerLine = `LEIHWAGEN: ${lr ? (lr.plate + (lr[lwLabelCol] ? ' · ' + lr[lwLabelCol] : '')) : loanerPlate}\n`;
+            const ll = lr ? (lr.plate + (lr[lwLabelCol] ? ' · ' + lr[lwLabelCol] : '')) : loanerPlate;
+            out.push('LEIHWAGEN: ' + sanitizeInvoiceTextPart(ll));
         }
-        let lines = items.map(i => `${i.name.padEnd(25)} $${i.price.toLocaleString('de-DE').padStart(10)}`).join('\n');
+        out.push('ZAHLUNG:  ' + payLabel);
+        out.push('--------------------------------------------');
+        items.forEach(i => {
+            const nm = sanitizeInvoiceTextPart(String(i.name || '')).replace(/\s+/g, ' ').trim();
+            out.push(nm.padEnd(25) + ' $' + i.price.toLocaleString('de-DE').padStart(10));
+        });
+        out.push('--------------------------------------------');
+        out.push('ZWISCHENSUMME:            $' + base.toLocaleString('de-DE').padStart(10));
+        out.push('RABATT (' + d + '%):           -$' + Math.round(base * (d / 100)).toLocaleString('de-DE').padStart(10));
+        out.push('--------------------------------------------');
+        out.push('GESAMTBETRAG:             $' + total.toLocaleString('de-DE').padStart(10));
+        out.push('--------------------------------------------');
+        out.push('ABHOLFRIST BIS: ' + deadline.toLocaleDateString() + ' - ' + deadline.getHours() + ':' + deadline.getMinutes().toString().padStart(2, '0') + ' UHR');
+        out.push('Danach $25 Standgebühr pro Tag!');
+        out.push('********************************************');
+
+        const joined = out.join('\n');
+        const invEl = document.getElementById('invoiceText');
+        if (invEl) invEl.textContent = joined;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:generateInvoice',message:'invoice layout',data:{hypothesisId:'H_INV_NEWLINE',nlCount:(joined.match(/\n/g)||[]).length,hasNlBeforeKunde:/\nKUNDE:/.test(joined),hasNlBeforeKFZ:/\nKFZ:/.test(joined),itemsCount:items.length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
 
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_INVOICE_LINES',location:'index.html:generateInvoice',message:'invoice lines computed',data:{itemsCount:items.length,hasTransfer:items.some(x=>String(x.name||'').toLowerCase().includes('fahrzeugüberführung')),base,d,total},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
-        document.getElementById('invoiceText').innerText = 
-            `********************************************\n` +
-            `         BENNY'S ORIGINAL MOTORWORKS        \n` +
-            `********************************************\n` +
-            `DATUM:    ${now.toLocaleString('de-DE')}\n` +
-            `KUNDE:    ${owner}\n` +
-            `KFZ:      ${plate}\n` +
-            (loanerLine ? loanerLine : '') +
-            `ZAHLUNG:  ${paymentWhenLabel(payWhen)}\n` +
-            `--------------------------------------------\n` +
-            `${lines}\n` +
-            `--------------------------------------------\n` +
-            `ZWISCHENSUMME:            $${base.toLocaleString('de-DE').padStart(10)}\n` +
-            `RABATT (${d}%):           -$${Math.round(base*(d/100)).toLocaleString('de-DE').padStart(10)}\n` +
-            `--------------------------------------------\n` +
-            `GESAMTBETRAG:             $${total.toLocaleString('de-DE').padStart(10)}\n` +
-            `--------------------------------------------\n` +
-            `ABHOLFRIST BIS: ${deadline.toLocaleDateString()} - ${deadline.getHours()}:${deadline.getMinutes().toString().padStart(2,'0')} UHR\n` +
-            `Danach $25 Standgebühr pro Tag!\n` +
-            `********************************************`;
     }
 
     async function submitRepair() {
@@ -1032,6 +1403,7 @@
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_SUBMIT_REPAIR_INPUTS',location:'index.html:submitRepair:beforeUpsert',message:'submitRepair inputs',data:{plate,ownerLen:owner.length,mechanicLen:(document.getElementById('p_mechanic').value||'').length,currentRepairItemsLen:(currentRepairItems||'').length,costText:document.getElementById('totalDisplay')?document.getElementById('totalDisplay').innerText:null,payment_when:document.getElementById('p_payment_when').value,loaner_plate:document.getElementById('p_loaner').value||null,pickup_at:document.getElementById('p_pickup_deadline').value||null},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         if(!plate || !owner) return alert("Bitte Kennzeichen und Besitzer angeben!");
+        if (!String(document.getElementById('p_mechanic').value || '').trim()) return alert("Bitte zuerst einen Mechaniker auswählen oder unter „Manuell“ eintragen!");
         
         const old = dataCache.find(c => c.plate === plate);
         const puRaw = document.getElementById('p_pickup_deadline').value;
@@ -1093,6 +1465,12 @@
         // #endregion
 
         if (upRes.error) console.error('[Cars upsert]', upRes.error);
+        if (!upRes.error) {
+            const invBody = document.getElementById('invoiceText').textContent;
+            const own = document.getElementById('p_owner').value;
+            const plt = document.getElementById('p_plate').value;
+            await tryAutoPostRepairInvoice(own, plt, invBody, 'werkstatt');
+        }
         load(); showTab('invoice');
     }
 
@@ -1113,6 +1491,7 @@
         const plate = document.getElementById('p_plate').value.toUpperCase().trim();
         const owner = document.getElementById('p_owner').value.trim();
         if(!plate || !owner) return alert("❌ Kennzeichen und Besitzer fehlen!");
+        if (!String(document.getElementById('p_mechanic').value || '').trim()) return alert("❌ Bitte zuerst einen Mechaniker wählen oder manuell eintragen!");
 
         calculatePrice();
 
@@ -1247,7 +1626,7 @@
             return alert('Auslösen fehlgeschlagen: ' + (rel.error.message || rel.error));
         }
 
-        document.getElementById('invoiceText').innerText = generateImpoundReleaseInvoiceText({
+        const invoiceBody = generateImpoundReleaseInvoiceText({
             owner: row?.owner,
             plate: plateKey,
             model: row?.model,
@@ -1257,6 +1636,8 @@
             impoundFee,
             combinedTotal
         });
+        document.getElementById('invoiceText').textContent = invoiceBody;
+        await tryAutoPostRepairInvoice(row?.owner, plateKey, invoiceBody, 'impound');
 
         await load();
         showTab('invoice');
@@ -1289,7 +1670,7 @@
 
     async function markAsPickedUp(p) { await _supabase.from('Cars').update({ status: 'abgeholt' }).eq('plate', p); load(); }
     function renderArchive(l) {
-        document.getElementById('mainTable').innerHTML = l.map(c => `<tr><td>${new Date(c.last_repair_date).toLocaleDateString()}</td><td><b>${c.plate}</b></td><td>${c.owner}</td><td>${c.cost}</td><td>${c.status}</td></tr>`).join('');
+        document.getElementById('mainTable').innerHTML = l.map(c => `<tr><td>${c.last_repair_date ? new Date(c.last_repair_date).toLocaleDateString('de-DE') : '–'}</td><td><b>${c.plate || '–'}</b></td><td>${c.owner || '–'}</td><td>${c.cost || ''}</td><td>${c.status || '–'}</td></tr>`).join('');
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'66584b'},body:JSON.stringify({sessionId:'66584b',location:'index.html:renderArchive',message:'archive table rendered',data:{hypothesisId:'H3',renderedRows:l.length},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
         // #endregion
@@ -1395,7 +1776,7 @@
     }
 
     function showTab(t) {
-        ['workshop','impound','customers','members','pickup','leihwagen','fleet','database','fraktion','invoice'].forEach(s => { if(document.getElementById(s+'Section')) document.getElementById(s+'Section').classList.add('hidden'); });
+        ['workshop','impound','customers','members','pickup','leihwagen','fleet','database','fraktion','invoice','provision'].forEach(s => { if(document.getElementById(s+'Section')) document.getElementById(s+'Section').classList.add('hidden'); });
         document.getElementById(t+'Section').classList.remove('hidden');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('t-'+t).classList.add('active');
@@ -1403,18 +1784,385 @@
         if (t === 'pickup') void load();
         else stopPickupCountdownTicker();
         if (t === 'fraktion' && document.getElementById('f_select').value) generateGroupInvoice();
+        if (t === 'fraktion') initInvoiceDiscordUi();
         if (t === 'members') renderMembers();
         if (t === 'leihwagen') renderLoanerTable();
         if (t === 'fleet') { void loadBennysFleetCache().then(() => renderBennysFleetTable()); }
+        if (t === 'provision') renderProvisionTab();
+        if (t === 'workshop') refreshWorkshopMechanicDropdown();
     }
+
+
+    const INV_DISC_WEBHOOKS = 'bennys_invoice_faction_webhooks_v1';
+    const INV_DISC_WEBHOOK_PRIVAT = 'bennys_invoice_privat_webhook_v1';
+    const INV_DISC_AUTOPOST = 'bennys_invoice_faction_autopost_v1';
+    const INV_DISC_AUTOPOST_REPAIR = 'bennys_invoice_repair_autopost_v1';
+    const INV_FACTION_KEYS = ['LSPD', 'MD', 'FD', 'DOJ', 'PMG'];
+    const INV_WH_VIEW_PASSWORD = 'bennys_invoice_webhook_view_password_v1';
+    const INV_WH_UNLOCK_FLAG = 'bennys_invoice_wh_unlocked_v1';
+
+    function invHasViewPassword() {
+        const p = localStorage.getItem(INV_WH_VIEW_PASSWORD);
+        return !!(p && String(p).length);
+    }
+    function invGetViewPassword() {
+        return String(localStorage.getItem(INV_WH_VIEW_PASSWORD) || '');
+    }
+    function invIsWebhooksUnlocked() {
+        return sessionStorage.getItem(INV_WH_UNLOCK_FLAG) === '1';
+    }
+    function invSetWebhooksUnlocked(on) {
+        if (on) sessionStorage.setItem(INV_WH_UNLOCK_FLAG, '1');
+        else sessionStorage.removeItem(INV_WH_UNLOCK_FLAG);
+    }
+    function invCollectAndValidateWebhookInputs() {
+        const next = {};
+        let invalid = false;
+        const rawPriv = String(document.getElementById('inv_wh_privat') && document.getElementById('inv_wh_privat').value || '').trim();
+        if (rawPriv && !ulIsValidDiscordWebhook(rawPriv)) invalid = 'Privat / Kunde';
+        INV_FACTION_KEYS.forEach(k => {
+            const raw = String(document.getElementById('inv_wh_' + k) && document.getElementById('inv_wh_' + k).value || '').trim();
+            if (raw && !ulIsValidDiscordWebhook(raw)) invalid = k;
+            if (raw) next[k] = raw;
+        });
+        return { invalid, next, rawPriv };
+    }
+    function invApplyWebhookUiVisibility() {
+        const wrap = document.getElementById('inv_wh_set_pass_wrap');
+        if (wrap) wrap.style.display = invHasViewPassword() ? 'none' : 'block';
+        const rm = document.getElementById('inv_wh_remove_protect_btn');
+        if (rm) rm.style.display = invHasViewPassword() ? 'inline-block' : 'none';
+        const row = document.getElementById('inv_wh_unlock_row');
+        if (row) {
+            row.style.display = invHasViewPassword() ? 'grid' : 'none';
+        }
+        const hint = document.getElementById('inv_wh_lock_hint');
+        if (hint) {
+            if (!invHasViewPassword()) hint.textContent = 'Kein Anzeige-Passwort: Webhooks sind direkt in den Feldern sichtbar.';
+            else if (!invIsWebhooksUnlocked()) hint.textContent = 'Webhook-URLs sind verborgen — Passwort eingeben und „Anzeigen“.';
+            else hint.textContent = 'Freigeschaltet: URLs sichtbar bis „Verbergen“ oder neues Laden der Seite.';
+        }
+        const w = invGetWebhooks();
+        const privat = invGetPrivatWebhook();
+        const showValues = !invHasViewPassword() || invIsWebhooksUnlocked();
+        const pvEl = document.getElementById('inv_wh_privat');
+        const phLocked = '*** Freischalten zum Anzeigen';
+        if (pvEl) {
+            if (showValues) {
+                pvEl.value = privat;
+                pvEl.readOnly = false;
+                pvEl.type = 'text';
+                pvEl.placeholder = 'https://discord.com/api/webhooks/…';
+            } else {
+                pvEl.value = '';
+                pvEl.readOnly = true;
+                pvEl.type = 'password';
+                pvEl.placeholder = phLocked;
+            }
+        }
+        INV_FACTION_KEYS.forEach(k => {
+            const el = document.getElementById('inv_wh_' + k);
+            if (!el) return;
+            if (showValues) {
+                el.value = String(w[k] || '');
+                el.readOnly = false;
+                el.type = 'text';
+                el.placeholder = 'https://discord.com/api/webhooks/…';
+            } else {
+                el.value = '';
+                el.readOnly = true;
+                el.type = 'password';
+                el.placeholder = phLocked;
+            }
+        });
+    }
+    function invLockWebhooksUi() {
+        invSetWebhooksUnlocked(false);
+        const u = document.getElementById('inv_wh_unlock_pass');
+        if (u) u.value = '';
+        invApplyWebhookUiVisibility();
+        if (invHasViewPassword()) invSetDiscordStatus('Webhook-Anzeige verborgen.', false);
+    }
+    function invTryUnlockWebhooks() {
+        if (!invHasViewPassword()) {
+            invSetWebhooksUnlocked(true);
+            const u = document.getElementById('inv_wh_unlock_pass');
+            if (u) u.value = '';
+            invApplyWebhookUiVisibility();
+            invSetDiscordStatus('Kein Passwortschutz aktiv.', false);
+            return;
+        }
+        const p = String(document.getElementById('inv_wh_unlock_pass') && document.getElementById('inv_wh_unlock_pass').value || '');
+        if (p !== invGetViewPassword()) {
+            invSetDiscordStatus('Falsches Passwort.', true);
+            return;
+        }
+        invSetWebhooksUnlocked(true);
+        const u = document.getElementById('inv_wh_unlock_pass');
+        if (u) u.value = '';
+        invApplyWebhookUiVisibility();
+        invSetDiscordStatus('Webhooks eingeblendet (Sitzung).', false);
+    }
+    function invSaveNewViewPassword() {
+        const a = String(document.getElementById('inv_wh_set_pass') && document.getElementById('inv_wh_set_pass').value || '');
+        const b = String(document.getElementById('inv_wh_set_pass2') && document.getElementById('inv_wh_set_pass2').value || '');
+        if (a.length < 4) return invSetDiscordStatus('Anzeige-Passwort: mindestens 4 Zeichen.', true);
+        if (a !== b) return invSetDiscordStatus('Passwörter stimmen nicht überein.', true);
+        const coll = invCollectAndValidateWebhookInputs();
+        if (coll.invalid) return invSetDiscordStatus('Ungültige Webhook-URL bei ' + coll.invalid + ' (muss https://discord.com/api/webhooks/… sein).', true);
+        invSetWebhooks(coll.next);
+        invSetPrivatWebhook(coll.rawPriv);
+        localStorage.setItem(INV_WH_VIEW_PASSWORD, a);
+        const e1 = document.getElementById('inv_wh_set_pass');
+        const e2 = document.getElementById('inv_wh_set_pass2');
+        if (e1) e1.value = '';
+        if (e2) e2.value = '';
+        invSetWebhooksUnlocked(false);
+        invApplyWebhookUiVisibility();
+        invSetDiscordStatus('Anzeige-Passwort ist aktiv. Webhooks sind verborgen — mit Passwort „Anzeigen“ bearbeiten.', false);
+    }
+    function invRemoveViewPasswordAfterUnlock() {
+        if (!invHasViewPassword()) return;
+        if (!invIsWebhooksUnlocked()) {
+            alert('Bitte zuerst „Anzeigen“ mit dem richtigen Passwort wählen.');
+            return;
+        }
+        const p = prompt('Aktuelles Anzeige-Passwort zur Bestätigung:');
+        if (p == null) return;
+        if (String(p) !== invGetViewPassword()) {
+            alert('Falsches Passwort.');
+            return;
+        }
+        if (!confirm('Passwortschutz dauerhaft entfernen? Gespeicherte Webhooks bleiben erhalten.')) return;
+        localStorage.removeItem(INV_WH_VIEW_PASSWORD);
+        invSetWebhooksUnlocked(false);
+        invApplyWebhookUiVisibility();
+        invSetDiscordStatus('Passwortschutz entfernt. Webhooks wieder dauerhaft sichtbar.', false);
+    }
+
+    function invGetPrivatWebhook() {
+        return String(localStorage.getItem(INV_DISC_WEBHOOK_PRIVAT) || '').trim();
+    }
+    function invSetPrivatWebhook(url) {
+        if (url) localStorage.setItem(INV_DISC_WEBHOOK_PRIVAT, url);
+        else localStorage.removeItem(INV_DISC_WEBHOOK_PRIVAT);
+    }
+
+    function invGetWebhooks() {
+        try { return JSON.parse(localStorage.getItem(INV_DISC_WEBHOOKS) || '{}'); } catch (_) { return {}; }
+    }
+    function invSetWebhooks(obj) {
+        localStorage.setItem(INV_DISC_WEBHOOKS, JSON.stringify(obj && typeof obj === 'object' ? obj : {}));
+    }
+    function invGetAutopost() {
+        const v = localStorage.getItem(INV_DISC_AUTOPOST);
+        if (v === null) return false;
+        return v === '1' || v === 'true';
+    }
+    function invSetAutopost(on) {
+        localStorage.setItem(INV_DISC_AUTOPOST, on ? '1' : '0');
+    }
+    function invGetAutopostRepair() {
+        const v = localStorage.getItem(INV_DISC_AUTOPOST_REPAIR);
+        if (v === null) return false;
+        return v === '1' || v === 'true';
+    }
+    function invSetAutopostRepair(on) {
+        localStorage.setItem(INV_DISC_AUTOPOST_REPAIR, on ? '1' : '0');
+    }
+    function invGetWebhookForFaction(f) {
+        return String((invGetWebhooks() || {})[f] || '').trim();
+    }
+    function initInvoiceDiscordUi() {
+        const ap = document.getElementById('inv_disc_autopost');
+        if (ap) ap.checked = invGetAutopost();
+        const apr = document.getElementById('inv_disc_autopost_repair');
+        if (apr) apr.checked = invGetAutopostRepair();
+        const st = document.getElementById('inv_disc_status');
+        if (st) st.textContent = '';
+        invApplyWebhookUiVisibility();
+    }
+    function invSetDiscordStatus(msg, isErr) {
+        const el = document.getElementById('inv_disc_status');
+        if (!el) return;
+        el.textContent = msg || '';
+        el.style.color = isErr ? '#f88' : '#9cf';
+    }
+    function ulIsValidDiscordWebhook(u) {
+        return /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[^?\s#]+$/i.test(String(u || '').trim());
+    }
+    function saveInvoiceDiscordSettings() {
+        const hasP = invHasViewPassword();
+        const unlocked = invIsWebhooksUnlocked();
+        const coll = invCollectAndValidateWebhookInputs();
+        if (coll.invalid) {
+            invSetDiscordStatus('Ungültige Webhook-URL bei ' + coll.invalid + ' (muss https://discord.com/api/webhooks/… sein).', true);
+            return;
+        }
+        if (!hasP || unlocked) {
+            invSetWebhooks(coll.next);
+            invSetPrivatWebhook(coll.rawPriv);
+        }
+        invSetAutopost(!!document.getElementById('inv_disc_autopost').checked);
+        invSetAutopostRepair(!!document.getElementById('inv_disc_autopost_repair').checked);
+        if (hasP && !unlocked) {
+            invSetDiscordStatus('Auto-Post-Einstellungen gespeichert. Webhooks unverändert (zum Bearbeiten: Passwort + „Anzeigen“).', false);
+        } else {
+            invSetDiscordStatus('Gespeichert. Privat = normale Kundenrechnungen ohne Fraktions-Kürzel.', false);
+        }
+    }
+    function splitDiscordContentChunks(text, maxLen) {
+        const cap = Math.min(1990, Math.max(500, maxLen || 1900));
+        const chunks = [];
+        let rest = String(text || '');
+        while (rest.length) {
+            if (rest.length <= cap) {
+                chunks.push(rest);
+                break;
+            }
+            let slice = rest.slice(0, cap);
+            const nl = slice.lastIndexOf('\n');
+            if (nl > cap * 0.45) slice = rest.slice(0, nl + 1);
+            chunks.push(slice);
+            rest = rest.slice(slice.length);
+        }
+        return chunks;
+    }
+    async function postDiscordWebhookChunks(webhookUrl, parts) {
+        let lastRes = null;
+        for (let i = 0; i < parts.length; i++) {
+            const payload = { username: "Benny's Rechnungen", content: parts[i] };
+            lastRes = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!lastRes.ok) {
+                const t = await lastRes.text().catch(() => '');
+                return { ok: false, error: `HTTP ${lastRes.status}: ${t.slice(0, 220)}`, status: lastRes.status };
+            }
+        }
+        return { ok: true, status: lastRes && lastRes.status };
+    }
+    function discordInvoiceTitleForKind(kind) {
+        if (kind === 'monthly') return 'Monatsabschluss';
+        if (kind === 'impound') return 'Impound-Auslöse + Rechnung';
+        return 'Werkstatt-Rechnung';
+    }
+    async function postInvoiceTargetDiscord(targetKey, plainText, kind) {
+        const k = kind || 'werkstatt';
+        const url = targetKey === 'PRIVAT' ? invGetPrivatWebhook() : invGetWebhookForFaction(targetKey);
+        if (!url) {
+            return { ok: false, error: targetKey === 'PRIVAT' ? 'Kein Webhook für Privat / Kunde hinterlegt.' : ('Kein Webhook für ' + targetKey + ' hinterlegt.') };
+        }
+        const label = targetKey === 'PRIVAT' ? 'Privat / Kunde' : targetKey;
+        const raw = String(plainText || '').replace(/```/g, "'''");
+        const innerMax = 1750;
+        const bodyChunks = splitDiscordContentChunks(raw, innerMax);
+        const titleBase = discordInvoiceTitleForKind(k);
+        const parts = bodyChunks.map((c, i) => {
+            const suf = bodyChunks.length > 1 ? ` (${i + 1}/${bodyChunks.length})` : '';
+            return `**Benny's — ${titleBase} (${label})**${suf}\n\`\`\`\n${c}\n\`\`\``;
+        });
+        const r = await postDiscordWebhookChunks(url, parts);
+        // #region agent log
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:postInvoiceTargetDiscord',message:'invoice discord',data:{hypothesisId:'INV_DISC',targetKey,invoiceKind:k,ok:r.ok,error:r.error||null,partCount:parts.length,status:r.status},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        return r;
+    }
+    async function postFactionInvoiceToDiscord(factionKey, plainText, kind) {
+        return postInvoiceTargetDiscord(factionKey, plainText, kind);
+    }
+    async function tryAutoPostFactionInvoice(f, invoiceBody) {
+        if (!invGetAutopost()) return { skipped: true };
+        if (!invGetWebhookForFaction(f)) return { skipped: true };
+        const r = await postFactionInvoiceToDiscord(f, invoiceBody, 'monthly');
+        if (!r.ok) alert('Discord Auto-Post fehlgeschlagen: ' + (r.error || 'Unbekannt'));
+        return r;
+    }
+    function detectFactionKeyFromOwnerOrPlate(owner, plate) {
+        const tryOne = (s) => {
+            const str = String(s || '').trim();
+            if (!str) return null;
+            const order = ['LSPD', 'DOJ', 'PMG', 'MD', 'FD'];
+            for (const key of order) {
+                if (new RegExp('\\b' + key + '\\b', 'i').test(str)) return key;
+            }
+            if (/\bPD\b/i.test(str)) return 'LSPD';
+            return null;
+        };
+        return tryOne(owner) || tryOne(plate);
+    }
+    function parseKundeFromInvoiceText(txt) {
+        const m = String(txt || '').match(/KUNDE:\s+(.+)/);
+        return m ? m[1].trim() : '';
+    }
+    function parsePlateFromInvoiceText(txt) {
+        const m = String(txt || '').match(/KFZ:\s+(.+)/);
+        return m ? m[1].trim() : '';
+    }
+    function classifyInvoiceBodyKind(body) {
+        const b = String(body || '');
+        if (/MONATSABSCHLUSS/i.test(b) && /FRAKTION:/i.test(b)) return 'monthly';
+        if (/TYP:\s*IMPOUND-AUSLÖSE/i.test(b)) return 'impound';
+        return 'werkstatt';
+    }
+    function resolveInvoiceDiscordTarget(body) {
+        const manualEl = document.getElementById('inv_manual_faction_override');
+        const manual = manualEl && String(manualEl.value || '').trim();
+        if (manual === 'PRIVAT') return { target: 'PRIVAT', source: 'manual' };
+        if (manual && INV_FACTION_KEYS.indexOf(manual) !== -1) return { target: manual, source: 'manual' };
+
+        const kind = classifyInvoiceBodyKind(body);
+        const fromMonthly = parseFactionKeyFromInvoiceText(body);
+        if (fromMonthly && INV_FACTION_KEYS.indexOf(fromMonthly) !== -1) return { target: fromMonthly, source: 'monthly' };
+
+        const kunde = parseKundeFromInvoiceText(body);
+        const plate = parsePlateFromInvoiceText(body);
+        const fromName = detectFactionKeyFromOwnerOrPlate(kunde, plate);
+        if (fromName) return { target: fromName, source: 'kunde' };
+
+        if (kind !== 'monthly' && invGetPrivatWebhook()) return { target: 'PRIVAT', source: 'privat' };
+        return { target: null, source: 'none' };
+    }
+    async function tryAutoPostRepairInvoice(owner, plate, invoiceBody, kind) {
+        if (!invGetAutopostRepair()) return { skipped: true };
+        const fk = detectFactionKeyFromOwnerOrPlate(owner, plate);
+        let target = null;
+        if (fk && invGetWebhookForFaction(fk)) target = fk;
+        else if (invGetPrivatWebhook()) target = 'PRIVAT';
+        if (!target) return { skipped: true };
+        const r = await postInvoiceTargetDiscord(target, invoiceBody, kind);
+        if (!r.ok) alert('Discord Auto-Post (Rechnung): ' + (r.error || 'Unbekannt'));
+        return r;
+    }
+    function parseFactionKeyFromInvoiceText(txt) {
+        const m = String(txt || '').match(/FRAKTION:\s+.+\(([A-Z]{2,4})\)/);
+        return m ? m[1] : null;
+    }
+    async function sendCurrentInvoiceToFactionDiscord() {
+        const body = document.getElementById('invoiceText') && document.getElementById('invoiceText').textContent;
+        if (!body || /Noch keine Rechnung/i.test(body)) return alert('Keine Rechnung im Anzeigefeld.');
+        const { target, source } = resolveInvoiceDiscordTarget(body);
+        if (!target) {
+            return alert('Kein Ziel: Bitte unter Fraktion einen Webhook für „Privat / Kunde“ speichern, oder eine Fraktion im Dropdown wählen bzw. im Kundennamen/Kennzeichen ein Kürzel (LSPD, FD, …) verwenden.');
+        }
+        const kind = classifyInvoiceBodyKind(body);
+        const r = await postInvoiceTargetDiscord(target, body, kind);
+        if (r.ok) alert('An Discord gesendet (' + (target === 'PRIVAT' ? 'Privat / Kunde' : target) + ', ' + source + ').');
+        else alert('Fehler: ' + (r.error || 'Unbekannt'));
+    }
+
 
     function filterArchive() {
         const term = document.getElementById('archiveSearch').value.toLowerCase();
         renderArchive(dataCache.filter(c => c.plate.toLowerCase().includes(term) || (c.owner && c.owner.toLowerCase().includes(term))));
     }
 
-    function factionMatchesOwner(f, owner) {
-        return owner && owner.toUpperCase().includes(f);
+    function factionMatchesOwner(f, owner, plate) {
+        const fp = String(f || '').toUpperCase();
+        const o = String(owner || '').toUpperCase().trim();
+        const p = String(plate || '').toUpperCase().trim();
+        if (!fp) return false;
+        if (o && o.includes(fp)) return true;
+        if (p && (p === fp || p.startsWith(fp + '-') || p.startsWith(fp + ' '))) return true;
+        return false;
     }
 
     function carInMonth(c, monthVal) {
@@ -1432,7 +2180,7 @@
             document.getElementById('groupResult').innerHTML = '<p style="color:#888;">Bitte eine Fraktion wählen.</p>';
             return;
         }
-        let filtered = dataCache.filter(c => factionMatchesOwner(f, c.owner)).filter(c => carInMonth(c, monthVal));
+        let filtered = dataCache.filter(c => factionMatchesOwner(f, c.owner, c.plate)).filter(c => carInMonth(c, monthVal));
         filtered = filtered.slice().sort((a, b) => new Date(a.last_repair_date) - new Date(b.last_repair_date));
         let sum = 0;
         let html = `<p style="color:#aaa; font-size:0.85rem; margin-bottom:10px;">Zeitraum: ${monthVal ? new Date(monthVal + '-01').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }) : 'Alle Einträge'}</p>`;
@@ -1452,7 +2200,7 @@
         if (!monthVal) return alert('Bitte einen Monat wählen (Monatsabschluss).');
 
         const factionLong = { LSPD: 'Los Santos Police Dept', MD: 'Medical Department', FD: 'Fire Department', DOJ: 'Department of Justice', PMG: 'PMG' };
-        const filtered = dataCache.filter(c => factionMatchesOwner(f, c.owner)).filter(c => carInMonth(c, monthVal))
+        const filtered = dataCache.filter(c => factionMatchesOwner(f, c.owner, c.plate)).filter(c => carInMonth(c, monthVal))
             .slice().sort((a, b) => new Date(a.last_repair_date) - new Date(b.last_repair_date));
 
         if (!filtered.length) return alert('Keine Buchungen in diesem Monat – nichts abzuschließen oder zu löschen.');
@@ -1486,32 +2234,34 @@
             return alert('Löschen fehlgeschlagen: ' + (delErr.message || delErr));
         }
 
-        document.getElementById('invoiceText').innerText =
-            `********************************************\n` +
+        const invoiceBody =
+            `****************************************************************\n` +
             `      BENNY'S ORIGINAL MOTORWORKS\n` +
             `         MONATSABSCHLUSS\n` +
-            `********************************************\n` +
+            `****************************************************************\n` +
             `FRAKTION:     ${titleLong} (${f})\n` +
             `ZEITRAUM:     ${periodLabel}\n` +
             `ERSTELLT:     ${new Date().toLocaleString('de-DE')}\n` +
-            `--------------------------------------------\n` +
+            `----------------------------------------------------------------\n` +
             `DATUM        KFZ             BESITZER                     BETRAG\n` +
-            `--------------------------------------------\n` +
+            `----------------------------------------------------------------\n` +
             lines.join('\n') +
-            `\n--------------------------------------------\n` +
+            `\n--------------------------------------------------------------\n` +
             `ANZAHL POSTEN: ${filtered.length}\n` +
             `GESAMTSUMME:   $${sum.toLocaleString('de-DE')}\n` +
+            `****************************************************************`
             `Betrag bitte an folgendes Konto überweisen:\n` +
             `3818 5746 8795 6653\n` +
-            `--------------------------------------------\n` +
-            `HINWEIS:       Einträge wurden nach Abschluss aus der Datenbank entfernt.\n` +
-            `********************************************`;
+            `****************************************************************`;
+
+        document.getElementById('invoiceText').textContent = invoiceBody;
+        await tryAutoPostFactionInvoice(f, invoiceBody);
 
         await load();
         showTab('invoice');
     }
 
-    function copyInvoice() { navigator.clipboard.writeText(document.getElementById('invoiceText').innerText).then(() => alert("Kopiert!")); }
+    function copyInvoice() { navigator.clipboard.writeText(document.getElementById('invoiceText').textContent).then(() => alert("Kopiert!")); }
     
     load();
     subscribeSharedRealtime();
