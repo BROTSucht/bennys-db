@@ -310,6 +310,17 @@
                 </div>
             </div>
             <button type="button" class="action-btn" style="margin-bottom:16px;" onclick="generateMonthlyClosingInvoice()">Monatsabschluss-Rechnung erstellen</button>
+            <div style="margin:0 0 16px 0; padding:14px; border:1px solid #444; border-radius:8px; background:#1a1a1a;">
+                <p style="color:var(--bennys-yellow); font-weight:bold; margin:0 0 10px 0;">LSPD — wöchentliche Gesamtrechnung</p>
+                <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Alle LSPD/PD-Buchungen einer Kalenderwoche als Sammelrechnung (ohne Archiv-Löschung). Montags wird bei aktiviertem Discord-Auto-Post die Vorwoche automatisch versendet, sofern noch nicht gesendet.</p>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:end;">
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label>Kalenderwoche</label>
+                        <input type="week" id="f_week" style="width:100%; box-sizing:border-box;">
+                    </div>
+                    <button type="button" class="action-btn" style="margin:0; white-space:nowrap;" onclick="generateWeeklyLspdClosingInvoice()">LSPD-Wochenrechnung erstellen</button>
+                </div>
+            </div>
             <button type="button" class="danger-btn" style="margin-bottom:16px; background:#444;" onclick="clearFraktionOverview()">Fraktions-Übersicht leeren</button>
             <div id="groupResult"></div>
         </div>
@@ -398,6 +409,7 @@
     let lastSubmittedPlate = null; // Wird für Debug-Logs genutzt (ob der gerade gespeicherte Eintrag in load() landet)
     let _loanerCarsColumnName = null; // Spaltenname in Cars, in dem der Leihwagen gespeichert wird
     let _loanerLabelColumnName = null; // Spaltenname in Leihwagen, in dem der Fahrzeugtyp/Label gespeichert wird
+    let _carsRowIdColumn = null; // eindeutige Zeilen-ID (id / repair_id …) — gleiches Kennzeichen mehrfach möglich
     let bennysFleetCache = [];
     let _bennysFleetTableName = null;
 
@@ -434,6 +446,171 @@
             .replace(/[\u2028\u2029]/g, '\n');
     }
 
+    async function resolveCarsRowIdColumn() {
+        if (_carsRowIdColumn !== null) return _carsRowIdColumn;
+        const { data, error } = await _supabase.from('Cars').select('*').limit(1);
+        if (!error && data && data[0]) {
+            const keys = Object.keys(data[0]);
+            if (keys.includes('ID')) { _carsRowIdColumn = 'ID'; return 'ID'; }
+            if (keys.includes('id')) { _carsRowIdColumn = 'id'; return 'id'; }
+            for (const k of ['car_id', 'repair_id', 'entry_id']) {
+                if (keys.includes(k)) { _carsRowIdColumn = k; return k; }
+            }
+        }
+        const candidates = ['ID', 'id', 'car_id', 'repair_id', 'entry_id'];
+        for (const col of candidates) {
+            const { error: selErr } = await _supabase.from('Cars').select(col).limit(1);
+            if (!selErr) {
+                _carsRowIdColumn = col;
+                return col;
+            }
+        }
+        _carsRowIdColumn = 'ID';
+        return 'ID';
+    }
+
+    function assignCarRowIdToPayload(payload, idCol) {
+        const col = idCol || _carsRowIdColumn || 'ID';
+        const uuid = generateCarRowId();
+        if (payload[col] == null || String(payload[col]).trim() === '') payload[col] = uuid;
+        return payload;
+    }
+
+    function generateCarRowId() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+        return 'car-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
+    }
+
+    function legacyCarRecordKey(car) {
+        return `${String(car.plate || '').trim().toUpperCase()}|${String(car.last_repair_date || '').trim()}|${String(car.status || '').trim()}`;
+    }
+
+    function carRecordId(car) {
+        if (!car) return '';
+        const col = _carsRowIdColumn || 'ID';
+        if (car.ID != null && String(car.ID).trim() !== '') return String(car.ID);
+        if (car.id != null && String(car.id).trim() !== '') return String(car.id);
+        if (col && car[col] != null && String(car[col]).trim() !== '') return String(car[col]);
+        return legacyCarRecordKey(car);
+    }
+
+    function escJsStr(s) {
+        return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function findCarsByPlate(plate, opts) {
+        const p = String(plate || '').trim().toUpperCase();
+        let list = dataCache.filter(c => String(c.plate || '').trim().toUpperCase() === p);
+        if (opts && opts.status) list = list.filter(c => c.status === opts.status);
+        return list;
+    }
+
+    function findLatestCarByPlate(plate, opts) {
+        return findCarsByPlate(plate, opts).slice().sort((a, b) => {
+            const ta = a.last_repair_date ? new Date(a.last_repair_date).getTime() : 0;
+            const tb = b.last_repair_date ? new Date(b.last_repair_date).getTime() : 0;
+            return tb - ta;
+        })[0] || null;
+    }
+
+    function countVisitsForPlate(plate) {
+        return findCarsByPlate(plate).length;
+    }
+
+    function carsInsertDuplicateKeyHint(err) {
+        const msg = String(err && (err.message || err) || '');
+        if (!/duplicate|unique|already exists|violates unique/i.test(msg)) return null;
+        return 'Die Datenbank erlaubt pro Kennzeichen noch nur einen Eintrag (Unique-Constraint auf „plate“). ' +
+            'In Supabase: Tabelle Cars — Primary Key auf UUID-Spalte „id“ legen, „plate“ nur als normale Spalte (nicht unique).';
+    }
+
+    async function insertCarRecord(rawPayload, opts) {
+        const lwCarsCol = (opts && opts.lwCarsCol) || (await resolveLoanerCarsColumnName());
+        const idCol = await resolveCarsRowIdColumn();
+        let payload = assignCarRowIdToPayload({ ...rawPayload }, idCol);
+
+        let res = await _supabase.from('Cars').insert([payload]);
+        if (res.error && /null value in column.*"ID"|column "ID".*not-null/i.test(String(res.error.message || ''))) {
+            _carsRowIdColumn = 'ID';
+            payload = assignCarRowIdToPayload({ ...payload }, 'ID');
+            if (idCol && idCol !== 'ID') delete payload[idCol];
+            res = await _supabase.from('Cars').insert([payload]);
+        }
+        if (res.error && /items/i.test(String(res.error.message || ''))) {
+            const { items: _omitItems, ...withoutItems } = payload;
+            const packedMechanic = packMechanicWithRepairLines(payload.mechanic, rawPayload.items);
+            payload = { ...withoutItems, mechanic: packedMechanic };
+            res = await _supabase.from('Cars').insert([payload]);
+        }
+        if (res.error && /pickup_at/i.test(String(res.error.message || ''))) {
+            const { pickup_at: _omitPu, ...withoutPickup } = payload;
+            payload = withoutPickup;
+            res = await _supabase.from('Cars').insert([payload]);
+        }
+        if (res.error && /payment_when/i.test(String(res.error.message || ''))) {
+            const { payment_when: _omitPw, ...withoutPw } = payload;
+            payload = withoutPw;
+            res = await _supabase.from('Cars').insert([payload]);
+        }
+        const errMsg = String(res.error && (res.error.message || res.error) || '');
+        if (res.error && lwCarsCol && errMsg.toLowerCase().includes(String(lwCarsCol).toLowerCase())) {
+            const { [lwCarsCol]: _omitLw, ...withoutLw } = payload;
+            payload = withoutLw;
+            res = await _supabase.from('Cars').insert([payload]);
+        }
+        return { res, payload, idCol };
+    }
+
+    async function updateCarRecord(carOrId, rawPayload) {
+        const idCol = await resolveCarsRowIdColumn();
+        let payload = { ...rawPayload };
+        let res;
+        const rid = typeof carOrId === 'object' ? carRecordId(carOrId) : String(carOrId || '');
+        if (idCol && rid && !rid.includes('|')) {
+            res = await _supabase.from('Cars').update(payload).eq(idCol, rid);
+        } else {
+            const car = typeof carOrId === 'object' ? carOrId : dataCache.find(c => carRecordId(c) === rid);
+            if (!car) {
+                res = { error: { message: 'Eintrag nicht gefunden.' } };
+            } else {
+                let q = _supabase.from('Cars').update(payload).eq('plate', car.plate);
+                if (car.last_repair_date) q = q.eq('last_repair_date', car.last_repair_date);
+                res = await q;
+            }
+        }
+        if (res.error && /items/i.test(String(res.error.message || ''))) {
+            const { items: _omitItems, ...withoutItems } = payload;
+            const car = typeof carOrId === 'object' ? carOrId : dataCache.find(c => carRecordId(c) === rid);
+            const mechBase = mechanicNameOnly((car && car.mechanic) || payload.mechanic || '');
+            const packedMechanic = packMechanicWithRepairLines(mechBase, rawPayload.items);
+            payload = { ...withoutItems, mechanic: packedMechanic };
+            if (idCol && rid && !rid.includes('|')) {
+                res = await _supabase.from('Cars').update(payload).eq(idCol, rid);
+            } else if (car) {
+                let q = _supabase.from('Cars').update(payload).eq('plate', car.plate);
+                if (car.last_repair_date) q = q.eq('last_repair_date', car.last_repair_date);
+                res = await q;
+            }
+        }
+        return res;
+    }
+
+    async function deleteCarRecords(cars) {
+        const idCol = await resolveCarsRowIdColumn();
+        const list = Array.isArray(cars) ? cars : [];
+        const ids = list.map(c => carRecordId(c)).filter(id => id && !String(id).includes('|'));
+        if (idCol && ids.length) {
+            return await _supabase.from('Cars').delete().in(idCol, ids);
+        }
+        for (const c of list) {
+            let q = _supabase.from('Cars').delete().eq('plate', c.plate);
+            if (c.last_repair_date) q = q.eq('last_repair_date', c.last_repair_date);
+            const { error } = await q;
+            if (error) return { error };
+        }
+        return { error: null };
+    }
+
     /** ISO-Zeitpunkt für Abhol-Countdown: DB-Feld oder Fallback 24h nach letzter Reparatur */
     function resolvePickupDeadlineISO(car) {
         if (car.pickup_at) {
@@ -466,11 +643,10 @@
                 cost: '$0',
                 items: 'AUTO-IMPOUND: >24h nach Abhol-frist'
             };
-            let res = await _supabase.from('Cars').update(payload).eq('plate', plate);
+            let res = await updateCarRecord(c, payload);
             if (res.error && /items/i.test(String(res.error.message || ''))) {
                 const { items: _omit, ...noItems } = payload;
-                payload = noItems;
-                res = await _supabase.from('Cars').update(payload).eq('plate', plate);
+                res = await updateCarRecord(c, noItems);
             }
             if (res.error) {
                 if (errSamples.length < 3) errSamples.push({ plate, msg: String(res.error.message || res.error) });
@@ -635,12 +811,16 @@
         renderProvisionTab();
         refreshWorkshopMechanicDropdown();
         await loadInvoiceDiscordSettingsFromSupabase();
+        await resolveCarsRowIdColumn();
         const fm = document.getElementById('f_month');
         if (fm && !fm.value) {
             const d = new Date();
             fm.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
+        const fw = document.getElementById('f_week');
+        if (fw && !fw.value) fw.value = dateToIsoWeekString(new Date());
         if (document.getElementById('f_select').value) generateGroupInvoice();
+        await maybeAutoWeeklyLspdInvoice();
     }
 
     async function resolveLoanerCarsColumnName() {
@@ -921,6 +1101,8 @@
     const PROVISION_CLEARED_STORAGE = 'bennys_provision_cleared_v1';
 
     function provisionRowKey(c) {
+        const rid = carRecordId(c);
+        if (rid && !String(rid).includes('|')) return rid;
         return `${String(c.plate || '').trim().toUpperCase()}|${String(c.last_repair_date || '').trim()}`;
     }
     function provisionReadClearedMap() {
@@ -1021,14 +1203,13 @@
     }
 
     /** Leihwagen gilt als „vergeben“, wenn ein anderer Auftrag (Cars) noch offen ist und diesen Leihwagen hat. */
-    function isLoanerReservedByOtherOpenCar(loanerPlate) {
+    function isLoanerReservedByOtherOpenCar(loanerPlate, exceptCarId) {
         if (!loanerPlate) return false;
         const lwCol = _loanerCarsColumnName || 'loaner_plate';
-        const workshopPlate = String(document.getElementById('p_plate')?.value || '').trim().toUpperCase();
         return dataCache.some(c => {
             if (c.status !== 'offen') return false;
+            if (exceptCarId && carRecordId(c) === exceptCarId) return false;
             if (String(c[lwCol] || '') !== String(loanerPlate)) return false;
-            if (workshopPlate && String(c.plate || '').trim().toUpperCase() === workshopPlate) return false;
             return true;
         });
     }
@@ -1354,72 +1535,36 @@
         if(!plate || !owner) return alert("Bitte Kennzeichen und Besitzer angeben!");
         if (!String(document.getElementById('p_mechanic').value || '').trim()) return alert("Bitte zuerst einen Mechaniker auswählen oder unter „Manuell“ eintragen!");
         
-        const old = dataCache.find(c => c.plate === plate);
         const puRaw = document.getElementById('p_pickup_deadline').value;
         const pickupIso = puRaw ? new Date(puRaw).toISOString() : null;
-        const payWhen = document.getElementById('p_payment_when').value;
         const loanerPlate = document.getElementById('p_loaner').value || null;
         const lwCarsCol = await resolveLoanerCarsColumnName();
-        // Speichere nun auch 'items' (die Liste der gemachten Arbeiten) in der DB
+        const visits = countVisitsForPlate(plate) + 1;
         const upPayload = {
-            plate: plate, 
-            model: document.getElementById('p_model').value, 
+            plate: plate,
+            model: document.getElementById('p_model').value,
             owner: owner,
-            phone: document.getElementById('p_phone').value, 
+            phone: document.getElementById('p_phone').value,
             mechanic: document.getElementById('p_mechanic').value,
             cost: document.getElementById('totalDisplay').innerText,
-            items: currentRepairItems, 
-            last_repair_date: new Date().toISOString(), 
-            visits: old ? (old.visits + 1) : 1, 
+            items: currentRepairItems,
+            last_repair_date: new Date().toISOString(),
+            visits: visits,
             status: 'offen',
             pickup_at: pickupIso,
+            payment_when: document.getElementById('p_payment_when').value,
             ...(loanerPlate ? { [lwCarsCol]: loanerPlate } : {})
         };
-        let payload = { ...upPayload };
-        let upRes = await _supabase.from('Cars').upsert(payload);
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'66584b'},body:JSON.stringify({sessionId:'66584b',location:'index.html:submitRepair:afterUpsert',message:'Cars upsert result',data:{hypothesisId:'H1',hasError:!!upRes.error,upsertError:upRes.error?String(upRes.error.message||upRes.error):null,upsertCode:upRes.error&&upRes.error.code,upsertDetails:upRes.error&&upRes.error.details,plate},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
-        if (upRes.error && /items/i.test(String(upRes.error.message || ''))) {
-            const { items: _omitItems, ...withoutItems } = payload;
-            const packedMechanic = packMechanicWithRepairLines(document.getElementById('p_mechanic').value, currentRepairItems);
-            payload = { ...withoutItems, mechanic: packedMechanic };
-            upRes = await _supabase.from('Cars').upsert(payload);
-            // #region agent log
-            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'66584b'},body:JSON.stringify({sessionId:'66584b',location:'index.html:submitRepair:afterUpsertRetryEmbedItems',message:'Cars upsert retry ohne items-Spalte, Posten in mechanic eingebettet',data:{hypothesisId:'ITEMS_EMBED',hasError:!!upRes.error,upsertError:upRes.error?String(upRes.error.message||upRes.error):null,plate,repairLinesLen:(currentRepairItems||'').length},timestamp:Date.now(),hypothesisId:'ITEMS_EMBED',runId:'retry-embed-mechanic'})}).catch(()=>{});
-            // #endregion
-        }
-        if (upRes.error && /pickup_at/i.test(String(upRes.error.message || ''))) {
-            const { pickup_at: _omitPu, ...withoutPickup } = payload;
-            payload = withoutPickup;
-            upRes = await _supabase.from('Cars').upsert(payload);
-        }
-        const upErrMsg = String(upRes.error && (upRes.error.message || upRes.error) ? (upRes.error.message || upRes.error) : '');
-        // Fallback: Falls die ermittelte Spalte in Cars doch nicht existiert (Schema-Drift),
-        // entfernen wir sie aus dem Payload und versuchen erneut.
-        if (upRes.error && lwCarsCol && upErrMsg.toLowerCase().includes(String(lwCarsCol).toLowerCase())) {
-            // #region agent log
-            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANER_PLATE_FALLBACK',location:'index.html:submitRepair:loaner_plateFallback',message:'loaner_plate field not available; removing from payload',data:{loanerPlate,upResErrorMsg:String(upRes.error.message||upRes.error),payloadKeysBefore:Object.keys(payload||{})},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
-            const { [lwCarsCol]: _omitLw, ...withoutLw } = payload;
-            payload = withoutLw;
-            upRes = await _supabase.from('Cars').upsert(payload);
-            // #region agent log
-            fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_LOANER_PLATE_FALLBACK',location:'index.html:submitRepair:loaner_plateFallbackAfter',message:'re-upsert after removing loaner_plate',data:{hasError:!!upRes.error,errorMsg:upRes.error?String(upRes.error.message||upRes.error):null,payloadKeysAfter:Object.keys(payload||{})},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
-        }
+        const { res: upRes, payload } = await insertCarRecord(upPayload, { lwCarsCol });
 
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_CARS_UPSERT_FINAL',location:'index.html:submitRepair:afterUpsert',message:'Cars upsert finished (after fallback retries)',data:{hasError:!!upRes.error,errorMsg:upRes.error?String(upRes.error.message||upRes.error):null,errorCode:upRes.error&&upRes.error.code,plate,finalPayloadKeys:Object.keys(payload||{}),visits:payload&&payload.visits,status:payload&&payload.status},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-
-        if (upRes.error) console.error('[Cars upsert]', upRes.error);
-        if (!upRes.error) {
-            const invBody = document.getElementById('invoiceText').textContent;
-            const own = document.getElementById('p_owner').value;
-            const plt = document.getElementById('p_plate').value;
-            await tryAutoPostRepairInvoice(own, plt, invBody, 'werkstatt');
+        if (upRes.error) {
+            console.error('[Cars insert]', upRes.error);
+            const dupHint = carsInsertDuplicateKeyHint(upRes.error);
+            if (dupHint) return alert(dupHint);
+            return alert('Speichern fehlgeschlagen: ' + (upRes.error.message || upRes.error));
         }
+        const invBody = document.getElementById('invoiceText').textContent;
+        await tryAutoPostRepairInvoice(owner, plate, invBody, 'werkstatt');
         load(); showTab('invoice');
     }
 
@@ -1444,7 +1589,7 @@
 
         calculatePrice();
 
-        const old = dataCache.find(c => String(c.plate).trim().toUpperCase() === plate);
+        const old = findLatestCarByPlate(plate);
         const fromForm = (currentRepairItems && String(currentRepairItems).trim()) ? String(currentRepairItems).trim() : '';
         const fromOld = old ? repairLinesFromCar(old) : '';
         let itemsText = fromForm;
@@ -1471,18 +1616,16 @@
             last_repair_date: new Date().toISOString(),
             status: 'impound',
             cost: costText,
-            items: mergedItems
+            items: mergedItems,
+            visits: countVisitsForPlate(plate) + 1
         };
-        let impRes = await _supabase.from('Cars').upsert(impPayload);
-        if (impRes.error && /items/i.test(String(impRes.error.message || ''))) {
-            const { items: _im, ...impNoItems } = impPayload;
-            const packedMechanic = packMechanicWithRepairLines(mechRaw, mergedItems);
-            impRes = await _supabase.from('Cars').upsert({ ...impNoItems, mechanic: packedMechanic });
+        const { res: impRes } = await insertCarRecord(impPayload);
+        if (impRes.error) {
+            console.error('[Cars insert impound]', impRes.error);
+            const dupHint = carsInsertDuplicateKeyHint(impRes.error);
+            if (dupHint) return alert(dupHint);
+            return alert('Impound speichern fehlgeschlagen: ' + (impRes.error.message || impRes.error));
         }
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_IMPOUND_SUBMIT',location:'index.html:submitToImpound',message:'impound submit with repair snapshot',data:{plate,itemsLen:(mergedItems||'').length,costText,hasError:!!impRes.error,errorMsg:impRes.error?String(impRes.error.message||impRes.error):null},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        if (impRes.error) console.error('[Cars upsert impound]', impRes.error);
         load(); showTab('impound');
     }
 
@@ -1497,7 +1640,7 @@
                 <div><b>${c.plate}</b> (${c.owner})<br><small>Tage: ${diffDays}</small></div>
                 <div style="text-align:right">
                     <div style="color:#0f0; font-weight:bold;">$${cost}</div>
-                    <button onclick="releaseFromImpound('${c.plate}', ${cost})" style="background:var(--bennys-yellow); border:none; padding:5px; cursor:pointer;">AUSLÖSEN</button>
+                    <button onclick="releaseFromImpound('${escJsStr(carRecordId(c))}', ${cost})" style="background:var(--bennys-yellow); border:none; padding:5px; cursor:pointer;">AUSLÖSEN</button>
                 </div>
             </div>`;
         }).join('');
@@ -1537,10 +1680,10 @@
         );
     }
 
-    async function releaseFromImpound(p, cost) {
-        const plateKey = String(p).trim();
+    async function releaseFromImpound(carId, cost) {
         const impoundFee = Number(cost) || 0;
-        const row = dataCache.find(c => String(c.plate).trim().toUpperCase() === plateKey.toUpperCase());
+        const row = dataCache.find(c => carRecordId(c) === String(carId)) || findLatestCarByPlate(carId, { status: 'impound' });
+        const plateKey = row ? String(row.plate || '').trim() : String(carId).trim();
         const rawRepairText = row ? repairLinesFromCar(row) : '';
         const isImpoundPlaceholder = (t) => {
             const s = String(t || '').trim();
@@ -1560,13 +1703,7 @@
             last_repair_date: new Date().toISOString(),
             items: mergedItems
         };
-        let rel = await _supabase.from('Cars').update(payload).eq('plate', plateKey);
-        if (rel.error && /items/i.test(String(rel.error.message || ''))) {
-            const { items: _omitItems, ...withoutItems } = payload;
-            const mechBase = mechanicNameOnly(row?.mechanic || '');
-            const packedMechanic = packMechanicWithRepairLines(mechBase, mergedItems);
-            rel = await _supabase.from('Cars').update({ ...withoutItems, mechanic: packedMechanic }).eq('plate', plateKey);
-        }
+        let rel = await updateCarRecord(row || carId, payload);
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_IMPOUND_RELEASE',location:'index.html:releaseFromImpound',message:'impound release update',data:{plate:plateKey,hasError:!!rel.error,errorMsg:rel.error?String(rel.error.message||rel.error):null,repairCostNum,impoundFee,combinedTotal,hasRepairLines:!!cleanRepairText},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
@@ -1599,7 +1736,7 @@
             const lwCol = _loanerCarsColumnName || 'loaner_plate';
             const cLoanerPlate = c[lwCol];
             const iso = resolvePickupDeadlineISO(c);
-            const escPlate = String(c.plate).replace(/'/g, "\\'");
+            const escCarId = escJsStr(carRecordId(c));
             const payNote = paymentWhenLabel(c.payment_when);
             const lr = cLoanerPlate && loanerCache.find(x => x.plate === cLoanerPlate);
             const lwLine = cLoanerPlate
@@ -1611,13 +1748,18 @@
                     <span class="pickup-deadline-line">Abholzeit: ${new Date(iso).toLocaleString('de-DE')}</span>
                     <span class="pickup-countdown" data-deadline="${iso}"></span>
                 </div>
-                <button onclick="markAsPickedUp('${escPlate}')" style="background:var(--bennys-yellow); border:none; padding:10px; cursor:pointer;">ABGEHOLT</button>
+                <button onclick="markAsPickedUp('${escCarId}')" style="background:var(--bennys-yellow); border:none; padding:10px; cursor:pointer;">ABGEHOLT</button>
             </div>`;
         }).join('');
         if (!document.getElementById('pickupSection').classList.contains('hidden')) startPickupCountdownTicker();
     }
 
-    async function markAsPickedUp(p) { await _supabase.from('Cars').update({ status: 'abgeholt' }).eq('plate', p); load(); }
+    async function markAsPickedUp(carId) {
+        const row = dataCache.find(c => carRecordId(c) === String(carId));
+        const res = await updateCarRecord(row || carId, { status: 'abgeholt' });
+        if (res.error) return alert('Status konnte nicht gespeichert werden: ' + (res.error.message || res.error));
+        load();
+    }
     function renderArchive(l) {
         document.getElementById('mainTable').innerHTML = l.map(c => `<tr><td>${c.last_repair_date ? new Date(c.last_repair_date).toLocaleDateString('de-DE') : '–'}</td><td><b>${c.plate || '–'}</b></td><td>${c.owner || '–'}</td><td>${c.cost || ''}</td><td>${c.status || '–'}</td></tr>`).join('');
         // #region agent log
@@ -1864,6 +2006,7 @@
     }
     function discordInvoiceTitleForKind(kind) {
         if (kind === 'monthly') return 'Monatsabschluss';
+        if (kind === 'weekly') return 'Wochen-Gesamtrechnung';
         if (kind === 'impound') return 'Impound-Auslöse + Rechnung';
         return 'Werkstatt-Rechnung';
     }
@@ -1891,25 +2034,59 @@
     async function postFactionInvoiceToDiscord(factionKey, plainText, kind) {
         return postInvoiceTargetDiscord(factionKey, plainText, kind);
     }
-    async function tryAutoPostFactionInvoice(f, invoiceBody) {
+    async function tryAutoPostFactionInvoice(f, invoiceBody, kind) {
         if (!invGetAutopost()) return { skipped: true };
         if (!invGetWebhookForFaction(f)) return { skipped: true };
-        const r = await postFactionInvoiceToDiscord(f, invoiceBody, 'monthly');
+        const r = await postFactionInvoiceToDiscord(f, invoiceBody, kind || 'monthly');
         if (!r.ok) alert('Discord Auto-Post fehlgeschlagen: ' + (r.error || 'Unbekannt'));
         return r;
     }
-    function detectFactionKeyFromOwnerOrPlate(owner, plate) {
-        const tryOne = (s) => {
-            const str = String(s || '').trim();
-            if (!str) return null;
-            const order = ['LSPD', 'DOJ', 'PMG', 'MD', 'FD'];
-            for (const key of order) {
-                if (new RegExp('\\b' + key + '\\b', 'i').test(str)) return key;
+
+    /** Kennzeichen-Präfixe und Besitzer-Muster je Fraktion (FD z. B. LSFD-01). */
+    const FACTION_PLATE_PREFIXES = {
+        LSPD: ['LSPD', 'LSSD'],
+        FD: ['LSFD', 'FD', 'FIRE'],
+        MD: ['MD', 'EMS'],
+        DOJ: ['DOJ'],
+        PMG: ['PMG']
+    };
+    const FACTION_OWNER_PATTERNS = {
+        LSPD: [/\bLSPD\b/i, /\bPOLICE\b/i, /\bLOS SANTOS POLICE\b/i],
+        FD: [/\bLSFD\b/i, /\bFIRE DEPARTMENT\b/i, /\bFIRE DEPT\b/i, /\bLOS SANTOS FIRE\b/i, /\bFIRE\b/i],
+        MD: [/\bMEDICAL\b/i, /\bEMS\b/i, /\bMD\b/i],
+        DOJ: [/\bDOJ\b/i, /\bJUSTICE\b/i],
+        PMG: [/\bPMG\b/i]
+    };
+
+    function plateMatchesFactionPrefix(plateUpper, factionKey) {
+        const prefixes = FACTION_PLATE_PREFIXES[factionKey] || [factionKey];
+        for (const pref of prefixes) {
+            if (plateUpper === pref || plateUpper.startsWith(pref + '-') || plateUpper.startsWith(pref + ' ')) return true;
+        }
+        if (factionKey === 'LSPD' && (plateUpper === 'PD' || plateUpper.startsWith('PD-') || plateUpper.startsWith('PD '))) return true;
+        return false;
+    }
+
+    function resolveFactionFromOwnerOrPlate(owner, plate) {
+        const o = String(owner || '').toUpperCase().trim();
+        const p = String(plate || '').toUpperCase().trim();
+        const order = ['LSPD', 'DOJ', 'PMG', 'MD', 'FD'];
+        for (const key of order) {
+            if (p && plateMatchesFactionPrefix(p, key)) return key;
+        }
+        for (const key of order) {
+            const patterns = FACTION_OWNER_PATTERNS[key] || [];
+            for (const rx of patterns) {
+                if (o && rx.test(o)) return key;
             }
-            if (/\bPD\b/i.test(str)) return 'LSPD';
-            return null;
-        };
-        return tryOne(owner) || tryOne(plate);
+            if (o && o.includes(key)) return key;
+        }
+        if (/\bPD\b/.test(o) || (p && /\bPD\b/.test(p))) return 'LSPD';
+        return null;
+    }
+
+    function detectFactionKeyFromOwnerOrPlate(owner, plate) {
+        return resolveFactionFromOwnerOrPlate(owner, plate);
     }
     async function tryAutoPostRepairInvoice(owner, plate, invoiceBody, kind) {
         if (!invGetAutopostRepair()) return { skipped: true };
@@ -1931,12 +2108,42 @@
 
     function factionMatchesOwner(f, owner, plate) {
         const fp = String(f || '').toUpperCase();
-        const o = String(owner || '').toUpperCase().trim();
-        const p = String(plate || '').toUpperCase().trim();
         if (!fp) return false;
-        if (o && o.includes(fp)) return true;
-        if (p && (p === fp || p.startsWith(fp + '-') || p.startsWith(fp + ' '))) return true;
-        return false;
+        return resolveFactionFromOwnerOrPlate(owner, plate) === fp;
+    }
+
+    function dateToIsoWeekString(d) {
+        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+        return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+
+    function parseIsoWeekValue(weekVal) {
+        const m = String(weekVal || '').match(/^(\d{4})-W(\d{2})$/i);
+        if (!m) return null;
+        return { year: parseInt(m[1], 10), week: parseInt(m[2], 10) };
+    }
+
+    function isoWeekRangeLabel(weekVal) {
+        const p = parseIsoWeekValue(weekVal);
+        if (!p) return weekVal || '';
+        const jan4 = new Date(Date.UTC(p.year, 0, 4));
+        const jan4Day = jan4.getUTCDay() || 7;
+        const monday = new Date(jan4);
+        monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (p.week - 1) * 7);
+        const sunday = new Date(monday);
+        sunday.setUTCDate(monday.getUTCDate() + 6);
+        const fmt = (d) => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+        return `KW ${p.week}/${p.year} (${fmt(monday)} – ${fmt(sunday)})`;
+    }
+
+    function carInIsoWeek(c, weekVal) {
+        if (!weekVal) return true;
+        if (!c.last_repair_date) return false;
+        return dateToIsoWeekString(new Date(c.last_repair_date)) === weekVal;
     }
 
     function carInMonth(c, monthVal) {
@@ -1945,6 +2152,60 @@
         const d = new Date(c.last_repair_date);
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         return ym === monthVal;
+    }
+
+    const INV_LSPD_WEEKLY_SENT = 'bennys_lspd_weekly_sent_v1';
+
+    function invGetLspdWeeklySentMap() {
+        try { return JSON.parse(localStorage.getItem(INV_LSPD_WEEKLY_SENT) || '{}'); } catch (_) { return {}; }
+    }
+    function invMarkLspdWeeklySent(weekVal) {
+        const m = invGetLspdWeeklySentMap();
+        m[weekVal] = new Date().toISOString();
+        localStorage.setItem(INV_LSPD_WEEKLY_SENT, JSON.stringify(m));
+    }
+    function invWasLspdWeeklySent(weekVal) {
+        return !!invGetLspdWeeklySentMap()[weekVal];
+    }
+
+    function getPreviousIsoWeekString() {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return dateToIsoWeekString(d);
+    }
+
+    function buildFactionCollectiveInvoiceBody(factionKey, periodLabel, closingType, filtered) {
+        const factionLong = { LSPD: 'Los Santos Police Dept', MD: 'Medical Department', FD: 'Fire Department', DOJ: 'Department of Justice', PMG: 'PMG' };
+        const titleLong = factionLong[factionKey] || factionKey;
+        const typeLine = closingType === 'weekly' ? 'WOCHEABSCHLUSS' : 'MONATSABSCHLUSS';
+        let sum = 0;
+        const lines = [];
+        filtered.forEach(c => {
+            const n = parseInt(String(c.cost).replace(/[^0-9]/g, ''), 10) || 0;
+            sum += n;
+            const dt = c.last_repair_date ? new Date(c.last_repair_date).toLocaleDateString('de-DE') : '–';
+            lines.push(`${dt.padEnd(12)} ${String(c.plate || '–').padEnd(14)} ${String(c.owner || '–').padEnd(28)} ${String(c.cost || '$0').padStart(10)}`);
+        });
+        return (
+            `****************************************************************\n` +
+            `      BENNY'S ORIGINAL MOTORWORKS\n` +
+            `         ${typeLine}\n` +
+            `****************************************************************\n` +
+            `FRAKTION:     ${titleLong} (${factionKey})\n` +
+            `ZEITRAUM:     ${periodLabel}\n` +
+            `ERSTELLT:     ${new Date().toLocaleString('de-DE')}\n` +
+            `----------------------------------------------------------------\n` +
+            `DATUM        KFZ             BESITZER                     BETRAG\n` +
+            `----------------------------------------------------------------\n` +
+            lines.join('\n') +
+            `\n--------------------------------------------------------------\n` +
+            `ANZAHL POSTEN: ${filtered.length}\n` +
+            `GESAMTSUMME:   $${sum.toLocaleString('de-DE')}\n` +
+            `****************************************************************\n` +
+            `Betrag bitte an folgendes Konto überweisen:\n` +
+            `3818 5746 8795 6653\n` +
+            `****************************************************************`
+        );
     }
 
     function generateGroupInvoice() {
@@ -1973,7 +2234,6 @@
         if (!f) return alert('Bitte eine Fraktion wählen.');
         if (!monthVal) return alert('Bitte einen Monat wählen (Monatsabschluss).');
 
-        const factionLong = { LSPD: 'Los Santos Police Dept', MD: 'Medical Department', FD: 'Fire Department', DOJ: 'Department of Justice', PMG: 'PMG' };
         const filtered = dataCache.filter(c => factionMatchesOwner(f, c.owner, c.plate)).filter(c => carInMonth(c, monthVal))
             .slice().sort((a, b) => new Date(a.last_repair_date) - new Date(b.last_repair_date));
 
@@ -1986,20 +2246,7 @@
         );
         if (!ok) return;
 
-        let sum = 0;
-        const lines = [];
-        filtered.forEach(c => {
-            const n = parseInt(String(c.cost).replace(/[^0-9]/g, ''), 10) || 0;
-            sum += n;
-            const dt = c.last_repair_date ? new Date(c.last_repair_date).toLocaleDateString('de-DE') : '–';
-            const plate = String(c.plate || '–');
-            const own = String(c.owner || '–');
-            lines.push(`${dt.padEnd(12)} ${plate.padEnd(14)} ${own.padEnd(28)} ${String(c.cost || '$0').padStart(10)}`);
-        });
-
-        const titleLong = factionLong[f] || f;
-        const plates = [...new Set(filtered.map(c => c.plate).filter(Boolean))];
-        const { error: delErr } = await _supabase.from('Cars').delete().in('plate', plates);
+        const { error: delErr } = await deleteCarRecords(filtered);
         // #region agent log
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_MONTHLY_DELETE',location:'index.html:generateMonthlyClosingInvoice',message:'Cars delete after monthly close attempt',data:{faction:f,monthVal,plateCount:plates.length,hasError:!!delErr,errorMsg:delErr?String(delErr.message||delErr):null,errorCode:delErr&&delErr.code},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
@@ -2008,31 +2255,63 @@
             return alert('Löschen fehlgeschlagen: ' + (delErr.message || delErr));
         }
 
-        const invoiceBody =
-            `****************************************************************\n` +
-            `      BENNY'S ORIGINAL MOTORWORKS\n` +
-            `         MONATSABSCHLUSS\n` +
-            `****************************************************************\n` +
-            `FRAKTION:     ${titleLong} (${f})\n` +
-            `ZEITRAUM:     ${periodLabel}\n` +
-            `ERSTELLT:     ${new Date().toLocaleString('de-DE')}\n` +
-            `----------------------------------------------------------------\n` +
-            `DATUM        KFZ             BESITZER                     BETRAG\n` +
-            `----------------------------------------------------------------\n` +
-            lines.join('\n') +
-            `\n--------------------------------------------------------------\n` +
-            `ANZAHL POSTEN: ${filtered.length}\n` +
-            `GESAMTSUMME:   $${sum.toLocaleString('de-DE')}\n` +
-            `****************************************************************\n` +
-            `Betrag bitte an folgendes Konto überweisen:\n` +
-            `3818 5746 8795 6653\n` +
-            `****************************************************************`;
-
+        const invoiceBody = buildFactionCollectiveInvoiceBody(f, periodLabel, 'monthly', filtered);
         document.getElementById('invoiceText').textContent = invoiceBody;
-        await tryAutoPostFactionInvoice(f, invoiceBody);
+        await tryAutoPostFactionInvoice(f, invoiceBody, 'monthly');
 
         await load();
         showTab('invoice');
+    }
+
+    async function generateWeeklyLspdClosingInvoice(opts) {
+        const silent = opts && opts.silent;
+        const weekVal = (opts && opts.weekVal) || (document.getElementById('f_week') && document.getElementById('f_week').value) || dateToIsoWeekString(new Date());
+        if (!weekVal) return silent ? null : alert('Bitte eine Kalenderwoche wählen.');
+
+        const filtered = dataCache
+            .filter(c => factionMatchesOwner('LSPD', c.owner, c.plate))
+            .filter(c => carInIsoWeek(c, weekVal))
+            .slice()
+            .sort((a, b) => new Date(a.last_repair_date) - new Date(b.last_repair_date));
+
+        if (!filtered.length) {
+            if (silent) return null;
+            return alert('Keine LSPD-Buchungen in dieser Kalenderwoche.');
+        }
+
+        if (!silent) {
+            const periodLabel = isoWeekRangeLabel(weekVal);
+            const ok = confirm(
+                `LSPD-Wochenrechnung (${periodLabel}):\n\n` +
+                `${filtered.length} Eintrag/Einträge — Archiv bleibt erhalten (Monatsabschluss löscht erst).\n\nFortfahren?`
+            );
+            if (!ok) return;
+        }
+
+        const periodLabel = isoWeekRangeLabel(weekVal);
+        const invoiceBody = buildFactionCollectiveInvoiceBody('LSPD', periodLabel, 'weekly', filtered);
+        document.getElementById('invoiceText').textContent = invoiceBody;
+        await tryAutoPostFactionInvoice('LSPD', invoiceBody, 'weekly');
+        invMarkLspdWeeklySent(weekVal);
+
+        if (!silent) {
+            await load();
+            showTab('invoice');
+        }
+        return invoiceBody;
+    }
+
+    async function maybeAutoWeeklyLspdInvoice() {
+        const now = new Date();
+        if (now.getDay() !== 1) return;
+        const weekVal = getPreviousIsoWeekString();
+        if (invWasLspdWeeklySent(weekVal)) return;
+        if (!invGetAutopost() || !invGetWebhookForFaction('LSPD')) return;
+        const hasRows = dataCache.some(c => factionMatchesOwner('LSPD', c.owner, c.plate) && carInIsoWeek(c, weekVal));
+        if (!hasRows) return;
+        const fw = document.getElementById('f_week');
+        if (fw) fw.value = weekVal;
+        await generateWeeklyLspdClosingInvoice({ weekVal, silent: true });
     }
 
     function copyInvoice() { navigator.clipboard.writeText(document.getElementById('invoiceText').textContent).then(() => alert("Kopiert!")); }
