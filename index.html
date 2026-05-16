@@ -2,46 +2,50 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Benny's Luxury Customs - Pro Management v42.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Benny's Luxury Customs - Pro Management v46</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-orange: #ff8c00; --bennys-yellow: var(--bennys-orange); --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; --sb-track: #1a1a1a; --sb-thumb: #3d3d3d; --sb-thumb-hover: #4f4f4f; }
-        html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); -webkit-text-size-adjust: 100%; }
         body::-webkit-scrollbar { width: 10px; height: 10px; }
         body::-webkit-scrollbar-track { background: var(--bennys-dark); }
         body::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 6px; border: 2px solid var(--bennys-dark); }
         body::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); }
         body::-webkit-scrollbar-corner { background: var(--bennys-dark); }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
-        h1 { color: var(--bennys-orange); margin-top: 0; }
-        .container { max-width: 1450px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: clamp(10px, 2.5vw, 20px); min-height: 100vh; overflow-x: hidden; }
+        h1 { color: var(--bennys-orange); margin-top: 0; font-size: clamp(1.25rem, 4vw, 1.75rem); line-height: 1.2; }
+        .container { width: 100%; max-width: 1450px; margin: auto; background: var(--bennys-grey); padding: clamp(14px, 3vw, 25px); border-radius: 15px; border: 1px solid #444; }
+        .input-wide { width: 100%; max-width: 520px; box-sizing: border-box; }
         
         /* Navigation */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--bennys-yellow); overflow-x: auto; overflow-y: hidden; padding-bottom: 5px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
         .tabs::-webkit-scrollbar { height: 7px; }
         .tabs::-webkit-scrollbar-track { background: var(--sb-track); border-radius: 4px; }
         .tabs::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 4px; }
         .tabs::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); }
         .tabs::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-        .tab-btn { background: none; border: none; color: #888; padding: 12px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; white-space: nowrap; }
+        .tab-btn { background: none; border: none; color: #888; padding: 10px 14px; cursor: pointer; font-weight: bold; text-transform: uppercase; white-space: nowrap; font-size: clamp(0.7rem, 2.2vw, 0.85rem); flex-shrink: 0; }
         .tab-btn.active { color: var(--bennys-yellow); border-bottom: 4px solid var(--bennys-yellow); }
 
         /* Layouts */
-        .repair-layout { display: grid; grid-template-columns: 320px 1fr 350px; gap: 20px; }
-        .damage-grid { background: #000; padding: 15px; border-radius: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-content: start; }
+        .repair-layout { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr) minmax(0, 320px); gap: clamp(12px, 2vw, 20px); align-items: start; }
+        .info-pane { min-width: 0; }
+        .damage-grid { background: #000; padding: clamp(10px, 2vw, 15px); border-radius: 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-content: start; min-width: 0; }
         .damage-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 8px 12px; border-radius: 4px; border: 1px solid #333; font-size: 0.85rem; }
         .damage-item input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
         .damage-item .qty-wrap { display:flex; align-items:center; gap:8px; }
         .damage-item input[type="number"] { width: 74px; padding: 6px 8px; }
         
-        .calc-box { background: #1a1a1a; padding: 20px; border-radius: 10px; border: 2px solid var(--bennys-yellow); text-align: center; position: sticky; top: 20px; }
-        .price-display { font-size: 2.2rem; font-weight: bold; color: #00ff00; margin: 10px 0; }
+        .calc-box { background: #1a1a1a; padding: clamp(14px, 2.5vw, 20px); border-radius: 10px; border: 2px solid var(--bennys-yellow); text-align: center; position: sticky; top: 12px; min-width: 0; }
+        .price-display { font-size: clamp(1.5rem, 5vw, 2.2rem); font-weight: bold; color: #00ff00; margin: 10px 0; word-break: break-word; }
         .staff-display { font-size: 1.2rem; color: var(--bennys-yellow); margin-bottom: 15px; }
 
         /* Formulare */
         .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
         label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; }
-        input, select, textarea { padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 5px; font-size: 1rem; }
+        input, select, textarea { padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 5px; font-size: 16px; max-width: 100%; width: 100%; }
         input:focus, textarea:focus { border-color: var(--bennys-yellow); outline: none; }
         
         button.action-btn { background: var(--bennys-orange); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; font-size: 1rem; }
@@ -56,13 +60,15 @@
         .archive-table th { text-align: left; background: #000; color: var(--bennys-yellow); padding: 12px; border-bottom: 2px solid #333; }
         .archive-table td { padding: 12px; border-bottom: 1px solid #222; }
 
-        .impound-card, .pickup-card { background: #000; border-left: 5px solid var(--impound-red); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .impound-card, .pickup-card { background: #000; border-left: 5px solid var(--impound-red); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
         .pickup-card { border-left-color: var(--bennys-yellow); }
+        .impound-card > div:first-child, .pickup-card > div:first-child { flex: 1 1 200px; min-width: 0; }
+        .impound-card > div:last-child, .pickup-card > button { flex-shrink: 0; }
 
         .pickup-deadline-line { color: var(--bennys-yellow); font-weight: bold; margin-top: 6px; font-size: 0.95rem; }
         .pickup-countdown { color: #9cf; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.9rem; margin-top: 4px; display: block; }
 
-        #invoiceText { background: #fafafa; color: #1a1a1a; padding: 28px 32px; font-family: 'Consolas', 'Courier New', monospace; border-radius: 8px; white-space: pre; overflow-x: auto; margin: 0; border: 2px solid var(--bennys-orange); font-size: 13px; line-height: 1.45; letter-spacing: 0.02em; tab-size: 4; box-sizing: border-box; width: 100%; max-width: 100%; scrollbar-width: thin; scrollbar-color: #666 #eee; }
+        #invoiceText { background: #fafafa; color: #1a1a1a; padding: clamp(14px, 3vw, 28px); font-family: 'Consolas', 'Courier New', monospace; border-radius: 8px; white-space: pre; overflow-x: auto; margin: 0; border: 2px solid var(--bennys-orange); font-size: clamp(11px, 2.8vw, 13px); line-height: 1.45; letter-spacing: 0.02em; tab-size: 4; width: 100%; max-width: 100%; scrollbar-width: thin; scrollbar-color: #666 #eee; -webkit-overflow-scrolling: touch; }
         #invoiceText::-webkit-scrollbar { height: 8px; width: 8px; }
         #invoiceText::-webkit-scrollbar-track { background: #eee; border-radius: 4px; }
         #invoiceText::-webkit-scrollbar-thumb { background: #999; border-radius: 4px; }
@@ -72,6 +78,49 @@
         .search-input { width: 100%; padding: 15px; margin-bottom: 20px; background: #000; border: 1px solid var(--bennys-yellow); color: white; border-radius: 5px; box-sizing: border-box; }
         
         .storage-info { color: #888; font-size: 0.75rem; margin-top: 10px; font-style: italic; border-top: 1px solid #333; padding-top: 10px; }
+
+        .form-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; }
+        .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; align-items: end; }
+        .form-grid-week { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+        .form-grid-member { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(120px, 180px) minmax(100px, 140px); gap: 10px; align-items: end; }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+        .btn-row .action-btn, .btn-row .danger-btn { width: auto; flex: 1 1 auto; min-width: min(100%, 200px); }
+        .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 12px; }
+        .table-scroll .archive-table { min-width: 520px; }
+        .table-scroll--wide .archive-table { min-width: 720px; }
+        #groupResult { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #groupResult .archive-table { min-width: 480px; }
+        #customerDetailView { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        @media (max-width: 1100px) {
+            .repair-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+            .repair-layout .calc-box { grid-column: 1 / -1; position: static; }
+            .form-grid-member { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 900px) {
+            .damage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .form-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            body { padding: 8px; }
+            .container { padding: 12px; border-radius: 10px; }
+            .tab-btn { padding: 8px 10px; }
+            .repair-layout { grid-template-columns: 1fr; }
+            .damage-grid { grid-template-columns: 1fr; }
+            .damage-item { flex-wrap: wrap; gap: 8px; }
+            .damage-item input[type="number"] { width: 100%; max-width: 120px; }
+            .form-grid-2, .form-grid-4, .form-grid-member { grid-template-columns: 1fr; }
+            .form-grid-week { grid-template-columns: 1fr; }
+            .form-grid-week .action-btn { width: 100%; white-space: normal; }
+            .form-grid-4 .action-btn { width: 100%; }
+            .impound-card, .pickup-card { flex-direction: column; align-items: stretch; }
+            .impound-card > div:last-child, .pickup-card > button { width: 100%; text-align: center; }
+            .archive-card { padding: 14px; }
+            h3 { font-size: 1.05rem; }
+        }
+        @media (max-width: 380px) {
+            .tab-btn { padding: 8px; font-size: 0.65rem; }
+        }
     </style>
 </head>
 <body>
@@ -99,11 +148,11 @@
             <p style="color:#888; font-size:0.85rem; margin:0 0 14px 0;">Wähle zuerst den Mechaniker. <strong>Danach</strong> erscheinen die Reparaturposten und die Preis-Kalkulation rechts.</p>
             <div class="input-group" style="margin-bottom:12px;">
                 <label>Mechaniker</label>
-                <select id="workshop_mech_select" style="width:100%; max-width:520px; box-sizing:border-box;" onchange="onWorkshopMechanicSelectChange()"></select>
+                <select id="workshop_mech_select" class="input-wide" onchange="onWorkshopMechanicSelectChange()"></select>
             </div>
             <div id="workshop_mech_manual_wrap" class="hidden input-group" style="margin-bottom:0;">
                 <label>Name manuell</label>
-                <input type="text" id="p_mechanic" placeholder="Name des Mechanikers" style="width:100%; max-width:520px; box-sizing:border-box;" oninput="onWorkshopMechanicManualInput()">
+                <input type="text" id="p_mechanic" class="input-wide" placeholder="Name des Mechanikers" oninput="onWorkshopMechanicManualInput()">
             </div>
         </div>
         <div class="repair-layout">
@@ -213,6 +262,7 @@
         <h3>👥 Kundenverwaltung</h3>
         <input type="text" class="search-input" id="customerSearch" placeholder="🔍 Kunden suchen..." onkeyup="filterCustomers()">
         <div class="archive-card">
+            <div class="table-scroll">
             <table class="archive-table">
                 <thead>
                     <tr>
@@ -223,6 +273,7 @@
                 </thead>
                 <tbody id="customerTable"></tbody>
             </table>
+            </div>
         </div>
         <div id="customerDetailView" style="margin-top:20px;"></div>
     </div>
@@ -236,14 +287,15 @@
         <div class="archive-card">
             <h3>Leihwagen-Pool</h3>
             <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Kennzeichen eindeutig (z. B. BENNY-LW1). In der Werkstatt unter „Leihwagen“ auswählbar.</p>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr minmax(140px,1fr); gap:10px; align-items:end;">
+            <div class="form-grid-4">
                 <div class="input-group" style="margin-bottom:0;"><label>Kennzeichen</label><input type="text" id="lw_plate" placeholder="BENNY-LW1"></div>
                 <div class="input-group" style="margin-bottom:0;"><label>Fahrzeug / Modell</label><input type="text" id="lw_label" placeholder="Kurzbeschreibung"></div>
                 <div class="input-group" style="margin-bottom:0;"><label>Notiz</label><input type="text" id="lw_notes" placeholder="optional"></div>
                 <button type="button" class="action-btn" onclick="saveLoaner()">Hinzufügen</button>
             </div>
         </div>
-        <table class="archive-table" style="margin-top:20px;">
+        <div class="table-scroll table-scroll--wide">
+        <table class="archive-table">
             <thead>
                 <tr>
                     <th>Kennzeichen</th>
@@ -255,19 +307,21 @@
             </thead>
             <tbody id="loanerTable"></tbody>
         </table>
+        </div>
     </div>
 
     <div id="fleetSection" class="hidden">
         <div class="archive-card">
             <h3>Benny's Fuhrpark</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr minmax(140px,1fr); gap:10px; align-items:end;">
+            <div class="form-grid-4">
                 <div class="input-group" style="margin-bottom:0;"><label>Kennzeichen</label><input type="text" id="bf_plate" placeholder="BENNY-01"></div>
                 <div class="input-group" style="margin-bottom:0;"><label>Fahrzeugtyp</label><input type="text" id="bf_typ" placeholder="z. B. Abschleppwagen"></div>
                 <div class="input-group" style="margin-bottom:0;"><label>VIN</label><input type="text" id="bf_vin" placeholder="Fahrgestellnummer"></div>
                 <button type="button" class="action-btn" onclick="saveBennysFleetVehicle()">Hinzufügen</button>
             </div>
         </div>
-        <table class="archive-table" style="margin-top:20px;">
+        <div class="table-scroll">
+        <table class="archive-table">
             <thead>
                 <tr>
                     <th>Kennzeichen</th>
@@ -278,22 +332,25 @@
             </thead>
             <tbody id="bennysFleetTable"></tbody>
         </table>
+        </div>
     </div>
 
     <div id="databaseSection" class="hidden">
         <input type="text" id="archiveSearch" class="search-input" placeholder="🔍 Archiv durchsuchen..." onkeyup="filterArchive()">
         <div class="archive-card">
+            <div class="table-scroll">
             <table class="archive-table">
                 <thead><tr><th>Datum</th><th>KFZ</th><th>Kunde</th><th>Preis</th><th>Status</th></tr></thead>
                 <tbody id="mainTable"></tbody>
             </table>
+            </div>
         </div>
     </div>
 
     <div id="fraktionSection" class="hidden">
         <div class="archive-card">
             <h3>Fraktions-Abrechnung</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px; align-items:end;">
+            <div class="form-grid-2">
                 <div class="input-group" style="margin-bottom:0;">
                     <label>Fraktion</label>
                     <select id="f_select" style="width:100%; box-sizing:border-box;" onchange="generateGroupInvoice()">
@@ -314,7 +371,7 @@
             <div style="margin:0 0 16px 0; padding:14px; border:1px solid #444; border-radius:8px; background:#1a1a1a;">
                 <p style="color:var(--bennys-yellow); font-weight:bold; margin:0 0 10px 0;">LSPD — wöchentliche Gesamtrechnung</p>
                 <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Alle LSPD/PD-Buchungen einer Kalenderwoche als Sammelrechnung (ohne Archiv-Löschung). Montags wird bei aktiviertem Discord-Auto-Post die Vorwoche automatisch versendet, sofern noch nicht gesendet.</p>
-                <div style="display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:end;">
+                <div class="form-grid-week">
                     <div class="input-group" style="margin-bottom:0;">
                         <label>Kalenderwoche</label>
                         <input type="week" id="f_week" style="width:100%; box-sizing:border-box;">
@@ -340,10 +397,11 @@
             <h3>Mitarbeiter-Provision (5&nbsp;% vom Rechnungsbetrag)</h3>
             <input type="text" id="prov_search" class="search-input" placeholder="🔍 Mechaniker, Kennzeichen oder Kunde filtern…" onkeyup="renderProvisionTab()">
             <p id="prov_summary" style="margin:12px 0; font-size:0.95rem;"></p>
-            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-                <button type="button" class="action-btn" style="width:auto; padding:12px 18px;" onclick="markAllFilteredProvisionCleared()">Alle <strong>offenen</strong> markieren (bezahlt)</button>
-                <button type="button" class="danger-btn" style="width:auto; padding:12px 18px; background:#444;" onclick="resetProvisionClearedAll()">Erledigt-Liste komplett leeren</button>
+            <div class="btn-row" style="margin-bottom:14px;">
+                <button type="button" class="action-btn" style="padding:12px 18px;" onclick="markAllFilteredProvisionCleared()">Alle <strong>offenen</strong> markieren (bezahlt)</button>
+                <button type="button" class="danger-btn" style="padding:12px 18px; background:#444;" onclick="resetProvisionClearedAll()">Erledigt-Liste komplett leeren</button>
             </div>
+            <div class="table-scroll table-scroll--wide">
             <table class="archive-table">
                 <thead>
                     <tr>
@@ -359,6 +417,7 @@
                 </thead>
                 <tbody id="prov_table"></tbody>
             </table>
+            </div>
         </div>
     </div>
 
@@ -366,7 +425,7 @@
         <div class="archive-card">
             <h3>VIP Mitgliedschaft</h3>
             <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Mit gleichem Kundennamen speichern = Eintrag aktualisieren. Nächste Zahlung = monatlich am gleichen Kalendertag wie „Mitglied seit“.</p>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 180px minmax(140px,1fr); gap:10px; align-items:end;">
+            <div class="form-grid-member">
                 <div class="input-group" style="margin-bottom:0;"><label>Name</label><input type="text" id="m_name" placeholder="Name des Kunden"></div>
                 <div class="input-group" style="margin-bottom:0;"><label>Stufe</label>
                     <select id="m_status">
@@ -380,10 +439,12 @@
                 <button type="button" class="action-btn" onclick="saveMember()">Speichern</button>
             </div>
         </div>
-        <table class="archive-table" style="margin-top:20px;">
+        <div class="table-scroll">
+        <table class="archive-table">
             <thead><tr><th>Kunden-Name</th><th>Status</th><th>Mitglied seit</th><th>Nächste Zahlung</th><th>Aktion</th></tr></thead>
             <tbody id="memberTable"></tbody>
         </table>
+        </div>
     </div>
 </div>
 
