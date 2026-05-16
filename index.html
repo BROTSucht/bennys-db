@@ -5,7 +5,7 @@
     <title>Benny's Luxury Customs - Pro Management v42.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bennys-yellow: #ffcc00; --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; --sb-track: #1a1a1a; --sb-thumb: #3d3d3d; --sb-thumb-hover: #4f4f4f; }
+        :root { --bennys-orange: #ff8c00; --bennys-yellow: var(--bennys-orange); --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; --sb-track: #1a1a1a; --sb-thumb: #3d3d3d; --sb-thumb-hover: #4f4f4f; }
         html { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) var(--sb-track); }
         body::-webkit-scrollbar { width: 10px; height: 10px; }
         body::-webkit-scrollbar-track { background: var(--bennys-dark); }
@@ -13,6 +13,7 @@
         body::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); }
         body::-webkit-scrollbar-corner { background: var(--bennys-dark); }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bennys-dark); color: white; margin: 0; padding: 20px; }
+        h1 { color: var(--bennys-orange); margin-top: 0; }
         .container { max-width: 1450px; margin: auto; background: var(--bennys-grey); padding: 25px; border-radius: 15px; border: 1px solid #444; }
         
         /* Navigation */
@@ -43,7 +44,8 @@
         input, select, textarea { padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 5px; font-size: 1rem; }
         input:focus, textarea:focus { border-color: var(--bennys-yellow); outline: none; }
         
-        button.action-btn { background: var(--bennys-yellow); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; font-size: 1rem; }
+        button.action-btn { background: var(--bennys-orange); color: black; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 5px; width: 100%; text-transform: uppercase; font-size: 1rem; }
+        button.action-btn:hover { background: #e67a00; }
         button.danger-btn { background: var(--impound-red); color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; width: 100%; margin-top: 10px; font-weight: bold; text-transform: uppercase; }
         
         .hidden { display: none; }
@@ -60,7 +62,7 @@
         .pickup-deadline-line { color: var(--bennys-yellow); font-weight: bold; margin-top: 6px; font-size: 0.95rem; }
         .pickup-countdown { color: #9cf; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.9rem; margin-top: 4px; display: block; }
 
-        #invoiceText { background: white; color: black; padding: 40px; font-family: 'Courier New', monospace; border-radius: 5px; white-space: pre-wrap; overflow-x: auto; margin: 0; border: 2px solid #ccc; font-size: 13px; line-height: 1.35; box-sizing: border-box; width: 100%; max-width: 100%; scrollbar-width: thin; scrollbar-color: #666 #eee; }
+        #invoiceText { background: #fafafa; color: #1a1a1a; padding: 28px 32px; font-family: 'Consolas', 'Courier New', monospace; border-radius: 8px; white-space: pre; overflow-x: auto; margin: 0; border: 2px solid var(--bennys-orange); font-size: 13px; line-height: 1.45; letter-spacing: 0.02em; tab-size: 4; box-sizing: border-box; width: 100%; max-width: 100%; scrollbar-width: thin; scrollbar-color: #666 #eee; }
         #invoiceText::-webkit-scrollbar { height: 8px; width: 8px; }
         #invoiceText::-webkit-scrollbar-track { background: #eee; border-radius: 4px; }
         #invoiceText::-webkit-scrollbar-thumb { background: #999; border-radius: 4px; }
@@ -258,7 +260,6 @@
     <div id="fleetSection" class="hidden">
         <div class="archive-card">
             <h3>Benny's Fuhrpark</h3>
-            <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Eigene Betriebsfahrzeuge. In Supabase z. B. Tabelle <code style="color:#ccc;">bennys_fuhrpark</code> (oder <code style="color:#ccc;">Bennys_Fuhrpark</code>) mit Spalten <code style="color:#ccc;">plate</code>, <code style="color:#ccc;">fahrzeugtyp</code> (alternativ <code style="color:#ccc;">label</code>), <code style="color:#ccc;">vin</code>.</p>
             <div style="display:grid; grid-template-columns: 1fr 1fr 1fr minmax(140px,1fr); gap:10px; align-items:end;">
                 <div class="input-group" style="margin-bottom:0;"><label>Kennzeichen</label><input type="text" id="bf_plate" placeholder="BENNY-01"></div>
                 <div class="input-group" style="margin-bottom:0;"><label>Fahrzeugtyp</label><input type="text" id="bf_typ" placeholder="z. B. Abschleppwagen"></div>
@@ -337,7 +338,6 @@
     <div id="provisionSection" class="hidden">
         <div class="archive-card">
             <h3>Mitarbeiter-Provision (5&nbsp;% vom Rechnungsbetrag)</h3>
-            <p style="color:#888; font-size:0.85rem; margin:0 0 14px 0;">Liste aus dem Archiv (<code style="color:#ccc;">Cars</code>): wer welches Fahrzeug bearbeitet hat und die berechnete Provision (ohne gesperrte Namen wie <strong>Mathias</strong>). <strong>„Als bezahlt / erledigt“</strong> speichert nur <strong>lokal in diesem Browser</strong> — die Zeile <strong>verschwindet</strong> aus der Tabelle. Mit <strong>„Erledigt-Liste komplett leeren“</strong> erscheinen bezahlte Einträge wieder (sofern nicht gefiltert). Die Datenbank bleibt unverändert.</p>
             <input type="text" id="prov_search" class="search-input" placeholder="🔍 Mechaniker, Kennzeichen oder Kunde filtern…" onkeyup="renderProvisionTab()">
             <p id="prov_summary" style="margin:12px 0; font-size:0.95rem;"></p>
             <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
@@ -444,6 +444,99 @@
             .replace(/\r\n/g, '\n')
             .replace(/\r/g, '\n')
             .replace(/[\u2028\u2029]/g, '\n');
+    }
+
+    const INV_WIDTH = 52;
+    const INV_AMT_COL = 12;
+    const INV_TBL = { date: 11, plate: 13, owner: 16, amt: INV_AMT_COL };
+    const INV_PAYMENT_ACCOUNT = '3818 5746 8795 6653';
+
+    function invBorder(ch) { return String(ch || '═').charAt(0).repeat(INV_WIDTH); }
+    function invSep() { return '─'.repeat(INV_WIDTH); }
+    function invCenter(text, w) {
+        const s = String(text || '');
+        const width = w || INV_WIDTH;
+        if (s.length >= width) return s.slice(0, width);
+        const pad = width - s.length;
+        const left = Math.floor(pad / 2);
+        return ' '.repeat(left) + s + ' '.repeat(pad - left);
+    }
+    function invPadRight(s, n) {
+        const t = String(s == null ? '' : s);
+        if (t.length > n) return t.slice(0, Math.max(0, n - 1)) + '…';
+        return t + ' '.repeat(Math.max(0, n - t.length));
+    }
+    function invPadLeft(s, n) {
+        const t = String(s == null ? '' : s);
+        if (t.length > n) return t.slice(-n);
+        return ' '.repeat(Math.max(0, n - t.length)) + t;
+    }
+    function invMoney(amount) {
+        const n = Number(amount) || 0;
+        if (n < 0) return '-$' + Math.abs(n).toLocaleString('de-DE');
+        return '$' + n.toLocaleString('de-DE');
+    }
+    function invMeta(label, value) {
+        return invPadRight(String(label || '') + ':', 14) + ' ' + String(value == null || value === '' ? '—' : value).trim();
+    }
+    function invAmountCol(text) {
+        return invPadLeft(String(text == null ? '' : text), INV_AMT_COL);
+    }
+    function invItemLine(name, price) {
+        const labelW = INV_WIDTH - INV_AMT_COL;
+        return invPadRight(String(name || '').replace(/\s+/g, ' ').trim(), labelW) + invAmountCol(invMoney(price));
+    }
+    function invTotalLine(label, amount, emphasize) {
+        const lbl = emphasize ? String(label || '').toUpperCase() : String(label || '');
+        const labelW = INV_WIDTH - INV_AMT_COL;
+        return invPadRight(lbl, labelW) + invAmountCol(invMoney(amount));
+    }
+    function invTableLine(date, plate, owner, amountText) {
+        return invPadRight(date, INV_TBL.date)
+            + invPadRight(plate, INV_TBL.plate)
+            + invPadRight(owner, INV_TBL.owner)
+            + invAmountCol(amountText);
+    }
+    function invCollectiveTableHeader() {
+        return invTableLine('DATUM', 'KFZ', 'BESITZER', 'BETRAG');
+    }
+    function invCollectiveTableRow(date, plate, owner, costStr) {
+        const n = parseInt(String(costStr).replace(/[^0-9]/g, ''), 10) || 0;
+        return invTableLine(date, plate, owner, invMoney(n));
+    }
+    function invBlank() { return ''; }
+    function invHeader(subtitle) {
+        const lines = [invBorder('═'), invCenter("BENNY'S ORIGINAL MOTORWORKS", INV_WIDTH)];
+        if (subtitle) lines.push(invCenter(subtitle, INV_WIDTH));
+        lines.push(invBorder('═'));
+        return lines.join('\n');
+    }
+    function invSection(title) {
+        const parts = [invBlank(), invSep()];
+        if (title) parts.push(invCenter(title, INV_WIDTH));
+        parts.push(invSep());
+        return parts.join('\n');
+    }
+    function invPaymentFooter() {
+        return [
+            invBlank(),
+            invSep(),
+            'Zahlung bitte überweisen an:',
+            INV_PAYMENT_ACCOUNT,
+            invBorder('═')
+        ].join('\n');
+    }
+    function setInvoiceText(text) {
+        const invEl = document.getElementById('invoiceText');
+        if (invEl) invEl.textContent = text;
+    }
+    function parseRepairLineToItem(line) {
+        const s = String(line || '').trim().replace(/^[-•*]\s*/, '');
+        const m = s.match(/^(.*?)\s+\$([\d.,]+)\s*$/);
+        if (m) {
+            return { name: m[1].trim(), price: parseInt(String(m[2]).replace(/[.,]/g, ''), 10) || 0 };
+        }
+        return { name: s, price: null };
     }
 
     async function resolveCarsRowIdColumn() {
@@ -598,15 +691,18 @@
     async function deleteCarRecords(cars) {
         const idCol = await resolveCarsRowIdColumn();
         const list = Array.isArray(cars) ? cars : [];
-        const ids = list.map(c => carRecordId(c)).filter(id => id && !String(id).includes('|'));
-        if (idCol && ids.length) {
-            return await _supabase.from('Cars').delete().in(idCol, ids);
-        }
+        if (!list.length) return { error: null };
         for (const c of list) {
-            let q = _supabase.from('Cars').delete().eq('plate', c.plate);
-            if (c.last_repair_date) q = q.eq('last_repair_date', c.last_repair_date);
-            const { error } = await q;
-            if (error) return { error };
+            const rid = carRecordId(c);
+            let res;
+            if (idCol && rid && !String(rid).includes('|')) {
+                res = await _supabase.from('Cars').delete().eq(idCol, rid);
+            } else {
+                let q = _supabase.from('Cars').delete().eq('plate', c.plate);
+                if (c.last_repair_date) q = q.eq('last_repair_date', c.last_repair_date);
+                res = await q;
+            }
+            if (res.error) return res;
         }
         return { error: null };
     }
@@ -1171,7 +1267,7 @@
                 '<td>' + own + '</td>' +
                 '<td>' + mech + '</td>' +
                 '<td>' + cost + '</td>' +
-                '<td style="color:#ffcc00;font-weight:bold;">$' + prov.toLocaleString('de-DE') + '</td>' +
+                '<td style="color:#ff8c00;font-weight:bold;">$' + prov.toLocaleString('de-DE') + '</td>' +
                 '<td>' + stat + '</td>' +
                 '<td style="text-align:right;">' + btn + '</td>' +
                 '</tr>';
@@ -1471,54 +1567,47 @@
         const now = new Date();
         const pu = document.getElementById('p_pickup_deadline').value;
         const deadline = pu ? new Date(pu) : new Date(now.getTime() + (24 * 60 * 60 * 1000));
-        const plate = sanitizeInvoiceTextPart(document.getElementById('p_plate').value || '---');
-        const owner = sanitizeInvoiceTextPart(document.getElementById('p_owner').value || '---');
+        const plate = sanitizeInvoiceTextPart(document.getElementById('p_plate').value || '—');
+        const owner = sanitizeInvoiceTextPart(document.getElementById('p_owner').value || '—');
+        const model = sanitizeInvoiceTextPart(document.getElementById('p_model').value || '');
+        const phone = sanitizeInvoiceTextPart(document.getElementById('p_phone').value || '');
         const payWhen = document.getElementById('p_payment_when').value;
         const loanerPlate = document.getElementById('p_loaner').value;
         const dateStr = sanitizeInvoiceTextPart(now.toLocaleString('de-DE'));
         const payLabel = sanitizeInvoiceTextPart(paymentWhenLabel(payWhen));
+        const deadlineStr = deadline.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+        const discountAmt = Math.round(base * (d / 100));
 
-        const out = [
-            '********************************************',
-            "         BENNY'S ORIGINAL MOTORWORKS        ",
-            '********************************************',
-            'DATUM:    ' + dateStr,
-            'KUNDE:    ' + owner,
-            'KFZ:      ' + plate
-        ];
+        const lines = [invHeader('WERKSTATT-RECHNUNG'), invBlank()];
+        lines.push(invMeta('Datum', dateStr));
+        lines.push(invMeta('Kunde', owner));
+        lines.push(invMeta('KFZ', plate));
+        if (model) lines.push(invMeta('Modell', model));
+        if (phone) lines.push(invMeta('Telefon', phone));
         if (loanerPlate) {
             const lr = loanerCache.find(x => x.plate === loanerPlate);
             const lwLabelCol = _loanerLabelColumnName || 'label';
             const ll = lr ? (lr.plate + (lr[lwLabelCol] ? ' · ' + lr[lwLabelCol] : '')) : loanerPlate;
-            out.push('LEIHWAGEN: ' + sanitizeInvoiceTextPart(ll));
+            lines.push(invMeta('Leihwagen', sanitizeInvoiceTextPart(ll)));
         }
-        out.push('ZAHLUNG:  ' + payLabel);
-        out.push('--------------------------------------------');
-        items.forEach(i => {
-            const nm = sanitizeInvoiceTextPart(String(i.name || '')).replace(/\s+/g, ' ').trim();
-            out.push(nm.padEnd(25) + ' $' + i.price.toLocaleString('de-DE').padStart(10));
+        lines.push(invMeta('Zahlung', payLabel));
+
+        lines.push(invSection('POSTEN'));
+        (items || []).forEach(i => {
+            lines.push(invItemLine(sanitizeInvoiceTextPart(i.name), i.price));
         });
-        out.push('--------------------------------------------');
-        out.push('ZWISCHENSUMME:            $' + base.toLocaleString('de-DE').padStart(10));
-        out.push('RABATT (' + d + '%):           -$' + Math.round(base * (d / 100)).toLocaleString('de-DE').padStart(10));
-        out.push('--------------------------------------------');
-        out.push('GESAMTBETRAG:             $' + total.toLocaleString('de-DE').padStart(10));
-        out.push('--------------------------------------------');
-        out.push('ABHOLFRIST BIS: ' + deadline.toLocaleDateString() + ' - ' + deadline.getHours() + ':' + deadline.getMinutes().toString().padStart(2, '0') + ' UHR');
-        out.push('Danach $25 Standgebühr pro Tag!');
-        out.push('********************************************');
 
-        const joined = out.join('\n');
-        const invEl = document.getElementById('invoiceText');
-        if (invEl) invEl.textContent = joined;
+        lines.push(invSection(''));
+        lines.push(invTotalLine('Zwischensumme', base));
+        if (d > 0) lines.push(invTotalLine('Rabatt (' + d + ' %)', -discountAmt));
+        lines.push(invTotalLine('GESAMTBETRAG', total, true));
 
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f4828'},body:JSON.stringify({sessionId:'6f4828',location:'index.html:generateInvoice',message:'invoice layout',data:{hypothesisId:'H_INV_NEWLINE',nlCount:(joined.match(/\n/g)||[]).length,hasNlBeforeKunde:/\nKUNDE:/.test(joined),hasNlBeforeKFZ:/\nKFZ:/.test(joined),itemsCount:items.length},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+        lines.push(invBlank());
+        lines.push(invMeta('Abholbar bis', deadlineStr));
+        lines.push('Danach $25 Standgebühr pro Tag.');
+        lines.push(invBorder('═'));
 
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_INVOICE_LINES',location:'index.html:generateInvoice',message:'invoice lines computed',data:{itemsCount:items.length,hasTransfer:items.some(x=>String(x.name||'').toLowerCase().includes('fahrzeugüberführung')),base,d,total},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+        setInvoiceText(lines.join('\n'));
     }
 
     async function submitRepair() {
@@ -1651,33 +1740,38 @@
         const now = new Date();
         const rep = (repairLines && String(repairLines).trim()) ? String(repairLines).trim() : '';
         const repLines = rep ? rep.split('\n').map(l => l.trim()).filter(Boolean) : [];
-        let postenBlock = '';
+
+        const lines = [invHeader('IMPOUND-AUSLÖSE'), invBlank()];
+        lines.push(invMeta('Datum', now.toLocaleString('de-DE')));
+        lines.push(invMeta('Kunde', sanitizeInvoiceTextPart(owner || '—')));
+        lines.push(invMeta('KFZ', sanitizeInvoiceTextPart(plate || '—')));
+        if (model) lines.push(invMeta('Modell', sanitizeInvoiceTextPart(model)));
+        if (phone) lines.push(invMeta('Telefon', sanitizeInvoiceTextPart(phone)));
+
         if (repLines.length) {
-            postenBlock = 'REPARATUR-POSTEN (falls gespeichert):\n' + repLines.join('\n') + '\n--------------------------------------------\n';
+            lines.push(invSection('REPARATUR-POSTEN'));
+            repLines.forEach(raw => {
+                const parsed = parseRepairLineToItem(raw);
+                if (parsed.price != null && parsed.price > 0) {
+                    lines.push(invItemLine(parsed.name, parsed.price));
+                } else {
+                    lines.push(invPadRight(parsed.name, INV_WIDTH));
+                }
+            });
         }
-        const impLine = `- Impound-Auslöse / Standgebühr      $${impoundFee.toLocaleString('de-DE').padStart(10)}`;
-        return (
-            `********************************************\n` +
-            `         BENNY'S ORIGINAL MOTORWORKS        \n` +
-            `********************************************\n` +
-            `TYP:      IMPOUND-AUSLÖSE + RECHNUNG\n` +
-            `DATUM:    ${now.toLocaleString('de-DE')}\n` +
-            `KUNDE:    ${owner || '---'}\n` +
-            `KFZ:      ${plate || '---'}\n` +
-            `MODELL:   ${model || '---'}\n` +
-            `TEL:      ${phone || '---'}\n` +
-            `--------------------------------------------\n` +
-            postenBlock +
-            `${impLine}\n` +
-            `--------------------------------------------\n` +
-            `SUMME REPARATUR (laut DB): $${repairCostNum.toLocaleString('de-DE').padStart(10)}\n` +
-            `SUMME IMPOUND-AUSLÖSE:     $${impoundFee.toLocaleString('de-DE').padStart(10)}\n` +
-            `--------------------------------------------\n` +
-            `GESAMTBETRAG:              $${combinedTotal.toLocaleString('de-DE').padStart(10)}\n` +
-            `--------------------------------------------\n` +
-            `HINWEIS: Fahrzeug ist nach Auslöse wieder zur Abholung (offen).\n` +
-            `********************************************`
-        );
+
+        lines.push(invSection('GEBÜHREN'));
+        lines.push(invItemLine('Impound-Auslöse / Standgebühr', impoundFee));
+
+        lines.push(invSection(''));
+        if (repairCostNum > 0) lines.push(invTotalLine('Summe Reparatur', repairCostNum));
+        lines.push(invTotalLine('Summe Impound', impoundFee));
+        lines.push(invTotalLine('GESAMTBETRAG', combinedTotal, true));
+
+        lines.push(invBlank());
+        lines.push('Hinweis: Fahrzeug nach Auslöse wieder zur Abholung (Status: offen).');
+        lines.push(invBorder('═'));
+        return lines.join('\n');
     }
 
     async function releaseFromImpound(carId, cost) {
@@ -1722,7 +1816,7 @@
             impoundFee,
             combinedTotal
         });
-        document.getElementById('invoiceText').textContent = invoiceBody;
+        setInvoiceText(invoiceBody);
         await tryAutoPostRepairInvoice(row?.owner, plateKey, invoiceBody, 'impound');
 
         await load();
@@ -2177,35 +2271,32 @@
     function buildFactionCollectiveInvoiceBody(factionKey, periodLabel, closingType, filtered) {
         const factionLong = { LSPD: 'Los Santos Police Dept', MD: 'Medical Department', FD: 'Fire Department', DOJ: 'Department of Justice', PMG: 'PMG' };
         const titleLong = factionLong[factionKey] || factionKey;
-        const typeLine = closingType === 'weekly' ? 'WOCHEABSCHLUSS' : 'MONATSABSCHLUSS';
+        const typeLine = closingType === 'weekly' ? 'WOCHEN-ABSCHLUSS' : 'MONATS-ABSCHLUSS';
         let sum = 0;
-        const lines = [];
+        const tableRows = [];
         filtered.forEach(c => {
             const n = parseInt(String(c.cost).replace(/[^0-9]/g, ''), 10) || 0;
             sum += n;
             const dt = c.last_repair_date ? new Date(c.last_repair_date).toLocaleDateString('de-DE') : '–';
-            lines.push(`${dt.padEnd(12)} ${String(c.plate || '–').padEnd(14)} ${String(c.owner || '–').padEnd(28)} ${String(c.cost || '$0').padStart(10)}`);
+            tableRows.push(invCollectiveTableRow(dt, String(c.plate || '–'), String(c.owner || '–'), c.cost));
         });
-        return (
-            `****************************************************************\n` +
-            `      BENNY'S ORIGINAL MOTORWORKS\n` +
-            `         ${typeLine}\n` +
-            `****************************************************************\n` +
-            `FRAKTION:     ${titleLong} (${factionKey})\n` +
-            `ZEITRAUM:     ${periodLabel}\n` +
-            `ERSTELLT:     ${new Date().toLocaleString('de-DE')}\n` +
-            `----------------------------------------------------------------\n` +
-            `DATUM        KFZ             BESITZER                     BETRAG\n` +
-            `----------------------------------------------------------------\n` +
-            lines.join('\n') +
-            `\n--------------------------------------------------------------\n` +
-            `ANZAHL POSTEN: ${filtered.length}\n` +
-            `GESAMTSUMME:   $${sum.toLocaleString('de-DE')}\n` +
-            `****************************************************************\n` +
-            `Betrag bitte an folgendes Konto überweisen:\n` +
-            `3818 5746 8795 6653\n` +
-            `****************************************************************`
-        );
+
+        const lines = [invHeader(typeLine), invBlank()];
+        lines.push(invMeta('Fraktion', titleLong + ' (' + factionKey + ')'));
+        lines.push(invMeta('Zeitraum', periodLabel));
+        lines.push(invMeta('Erstellt', new Date().toLocaleString('de-DE')));
+
+        lines.push(invSection('POSITIONEN'));
+        lines.push(invCollectiveTableHeader());
+        lines.push(invSep());
+        lines.push(tableRows.length ? tableRows.join('\n') : invCenter('— keine Einträge —', INV_WIDTH));
+
+        lines.push(invBlank());
+        lines.push(invSep());
+        lines.push(invMeta('Anzahl Posten', String(filtered.length)));
+        lines.push(invTotalLine('GESAMTSUMME', sum, true));
+        lines.push(invPaymentFooter());
+        return lines.join('\n');
     }
 
     function generateGroupInvoice() {
@@ -2246,19 +2337,25 @@
         );
         if (!ok) return;
 
-        const { error: delErr } = await deleteCarRecords(filtered);
-        // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_MONTHLY_DELETE',location:'index.html:generateMonthlyClosingInvoice',message:'Cars delete after monthly close attempt',data:{faction:f,monthVal,plateCount:plates.length,hasError:!!delErr,errorMsg:delErr?String(delErr.message||delErr):null,errorCode:delErr&&delErr.code},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        if (delErr) {
-            console.error(delErr);
-            return alert('Löschen fehlgeschlagen: ' + (delErr.message || delErr));
+        let invoiceBody;
+        try {
+            invoiceBody = buildFactionCollectiveInvoiceBody(f, periodLabel, 'monthly', filtered);
+            setInvoiceText(invoiceBody);
+        } catch (err) {
+            console.error(err);
+            return alert('Rechnung konnte nicht erstellt werden: ' + (err && err.message ? err.message : err));
         }
 
-        const invoiceBody = buildFactionCollectiveInvoiceBody(f, periodLabel, 'monthly', filtered);
-        document.getElementById('invoiceText').textContent = invoiceBody;
-        await tryAutoPostFactionInvoice(f, invoiceBody, 'monthly');
+        const { error: delErr } = await deleteCarRecords(filtered);
+        if (delErr) {
+            console.error(delErr);
+            alert(
+                'Die Sammelrechnung wurde erstellt (Tab Rechnung), aber das Löschen aus dem Archiv ist fehlgeschlagen:\n\n' +
+                (delErr.message || delErr)
+            );
+        }
 
+        await tryAutoPostFactionInvoice(f, invoiceBody, 'monthly');
         await load();
         showTab('invoice');
     }
@@ -2290,7 +2387,7 @@
 
         const periodLabel = isoWeekRangeLabel(weekVal);
         const invoiceBody = buildFactionCollectiveInvoiceBody('LSPD', periodLabel, 'weekly', filtered);
-        document.getElementById('invoiceText').textContent = invoiceBody;
+        setInvoiceText(invoiceBody);
         await tryAutoPostFactionInvoice('LSPD', invoiceBody, 'weekly');
         invMarkLspdWeeklySent(weekVal);
 
