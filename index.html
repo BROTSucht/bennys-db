@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Benny's Luxury Customs - Pro Management v46</title>
+    <title>Benny's Luxury Customs - Pro Management v42.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bennys-orange: #ff8c00; --bennys-yellow: var(--bennys-orange); --bennys-dark: #111; --bennys-grey: #222; --impound-red: #ff4444; --sb-track: #1a1a1a; --sb-thumb: #3d3d3d; --sb-thumb-hover: #4f4f4f; }
@@ -81,7 +81,13 @@
 
         .form-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; }
         .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; align-items: end; }
-        .form-grid-week { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+        .form-grid-week { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: stretch; }
+        .form-grid-week > * { min-width: 0; }
+        .form-grid-week .action-btn { width: 100%; white-space: normal; line-height: 1.25; }
+        .lspd-weekly-block { min-width: 0; overflow: hidden; }
+        @media (min-width: 520px) {
+            .form-grid-week { grid-template-columns: minmax(0, 1fr) minmax(0, 220px); align-items: end; }
+        }
         .form-grid-member { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(120px, 180px) minmax(100px, 140px); gap: 10px; align-items: end; }
         .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
         .btn-row .action-btn, .btn-row .danger-btn { width: auto; flex: 1 1 auto; min-width: min(100%, 200px); }
@@ -111,7 +117,8 @@
             .damage-item input[type="number"] { width: 100%; max-width: 120px; }
             .form-grid-2, .form-grid-4, .form-grid-member { grid-template-columns: 1fr; }
             .form-grid-week { grid-template-columns: 1fr; }
-            .form-grid-week .action-btn { width: 100%; white-space: normal; }
+            .form-grid-week .action-btn { font-size: 0.9rem; padding: 12px; }
+            .lspd-weekly-block { padding: 12px !important; }
             .form-grid-4 .action-btn { width: 100%; }
             .impound-card, .pickup-card { flex-direction: column; align-items: stretch; }
             .impound-card > div:last-child, .pickup-card > button { width: 100%; text-align: center; }
@@ -255,6 +262,7 @@
 
     <div id="impoundSection" class="hidden">
         <h3>🚔 Fahrzeuge im Impound ($25 pro Tag Standgebühr)</h3>
+        <button type="button" class="action-btn" style="max-width:420px; margin-bottom:14px;" onclick="recoverImpoundMissingInvoicesManual()">Werkstatt-Rechnungen für alle Impound-Fahrzeuge wiederherstellen</button>
         <div id="impoundList"></div>
     </div>
 
@@ -368,7 +376,7 @@
                 </div>
             </div>
             <button type="button" class="action-btn" style="margin-bottom:16px;" onclick="generateMonthlyClosingInvoice()">Monatsabschluss-Rechnung erstellen</button>
-            <div style="margin:0 0 16px 0; padding:14px; border:1px solid #444; border-radius:8px; background:#1a1a1a;">
+            <div class="lspd-weekly-block" style="margin:0 0 16px 0; padding:14px; border:1px solid #444; border-radius:8px; background:#1a1a1a;">
                 <p style="color:var(--bennys-yellow); font-weight:bold; margin:0 0 10px 0;">LSPD — wöchentliche Gesamtrechnung</p>
                 <p style="color:#888; font-size:0.85rem; margin:0 0 12px 0;">Alle LSPD/PD-Buchungen einer Kalenderwoche als Sammelrechnung (ohne Archiv-Löschung). Montags wird bei aktiviertem Discord-Auto-Post die Vorwoche automatisch versendet, sofern noch nicht gesendet.</p>
                 <div class="form-grid-week">
@@ -376,7 +384,7 @@
                         <label>Kalenderwoche</label>
                         <input type="week" id="f_week" style="width:100%; box-sizing:border-box;">
                     </div>
-                    <button type="button" class="action-btn" style="margin:0; white-space:nowrap;" onclick="generateWeeklyLspdClosingInvoice()">LSPD-Wochenrechnung erstellen</button>
+                    <button type="button" class="action-btn" style="margin:0;" onclick="generateWeeklyLspdClosingInvoice()">LSPD-Wochenrechnung erstellen</button>
                 </div>
             </div>
             <button type="button" class="danger-btn" style="margin-bottom:16px; background:#444;" onclick="clearFraktionOverview()">Fraktions-Übersicht leeren</button>
@@ -476,6 +484,9 @@
 
     /** Wenn die DB keine Spalte `items` hat: Posten werden an `mechanic` angehängt (Marker + Text). */
     const BENNY_ITEMS_MARK = '\n---BENNY_ITEMS---\n';
+    const BENNY_WERKSTATT_INVOICE_MARK = '\n---BENNY_WERKSTATT_RECHNUNG---\n';
+    const IMPOUND_ITEMS_MARK = '\n--- IMPOUND (eingeliefert) ---';
+
     function packMechanicWithRepairLines(rawMechanic, itemsText) {
         const lines = (itemsText && String(itemsText).trim()) ? String(itemsText).trim() : '';
         if (!lines) return rawMechanic || '';
@@ -486,12 +497,56 @@
         const i = storedMechanic.indexOf(BENNY_ITEMS_MARK);
         return i === -1 ? storedMechanic : storedMechanic.slice(0, i).trimEnd();
     }
+    function formatRepairItemLine(name, price) {
+        const n = sanitizeInvoiceTextPart(name).replace(/\s+/g, ' ').trim();
+        const p = Number(price);
+        if (n && p > 0) return '- ' + n + ' $' + Math.round(p).toLocaleString('de-DE');
+        if (n) return '- ' + n;
+        return '';
+    }
+    function formatRepairItemsForStorage(itemList) {
+        return (itemList || []).map(i => formatRepairItemLine(i.name, i.price)).filter(Boolean).join('\n');
+    }
+    function packItemsWithWorkshopInvoice(repairLines, workshopInvoiceText) {
+        const base = String(repairLines || '').trim();
+        const inv = String(workshopInvoiceText || '').trim();
+        if (!inv) return base;
+        return (base ? base + BENNY_WERKSTATT_INVOICE_MARK : BENNY_WERKSTATT_INVOICE_MARK) + inv;
+    }
+    function splitStoredCarItems(raw) {
+        let s = String(raw || '').trim();
+        let workshopInvoice = '';
+        const wi = s.indexOf(BENNY_WERKSTATT_INVOICE_MARK);
+        if (wi !== -1) {
+            workshopInvoice = s.slice(wi + BENNY_WERKSTATT_INVOICE_MARK.length).trim();
+            s = s.slice(0, wi).trim();
+        }
+        const impIdx = s.indexOf(IMPOUND_ITEMS_MARK);
+        let repairLines = impIdx !== -1 ? s.slice(0, impIdx).trim() : s;
+        if (/^AUTO-IMPOUND:/i.test(repairLines)) repairLines = '';
+        return { repairLines, workshopInvoice };
+    }
     function repairLinesFromCar(row) {
-        if (row.items && String(row.items).trim()) return String(row.items).trim();
-        const m = row.mechanic;
-        if (!m) return '';
-        const i = m.indexOf(BENNY_ITEMS_MARK);
-        return i === -1 ? '' : m.slice(i + BENNY_ITEMS_MARK.length).trim();
+        const raw = row.items && String(row.items).trim()
+            ? String(row.items).trim()
+            : (() => {
+                const m = row.mechanic;
+                if (!m) return '';
+                const i = m.indexOf(BENNY_ITEMS_MARK);
+                return i === -1 ? '' : m.slice(i + BENNY_ITEMS_MARK.length).trim();
+            })();
+        return splitStoredCarItems(raw).repairLines;
+    }
+    function workshopInvoiceFromCar(row) {
+        const raw = row.items && String(row.items).trim()
+            ? String(row.items).trim()
+            : (() => {
+                const m = row.mechanic;
+                if (!m) return '';
+                const i = m.indexOf(BENNY_ITEMS_MARK);
+                return i === -1 ? '' : m.slice(i + BENNY_ITEMS_MARK.length).trim();
+            })();
+        return splitStoredCarItems(raw).workshopInvoice;
     }
 
     function paymentWhenLabel(code) {
@@ -746,6 +801,20 @@
                 res = await q;
             }
         }
+        if (res.error && /pickup_at/i.test(String(res.error.message || ''))) {
+            const { pickup_at: _omitPu, ...withoutPickup } = payload;
+            payload = withoutPickup;
+            if (idCol && rid && !rid.includes('|')) {
+                res = await _supabase.from('Cars').update(payload).eq(idCol, rid);
+            } else {
+                const car = typeof carOrId === 'object' ? carOrId : dataCache.find(c => carRecordId(c) === rid);
+                if (car) {
+                    let q = _supabase.from('Cars').update(payload).eq('plate', car.plate);
+                    if (car.last_repair_date) q = q.eq('last_repair_date', car.last_repair_date);
+                    res = await q;
+                }
+            }
+        }
         return res;
     }
 
@@ -794,12 +863,19 @@
         for (const c of stale) {
             const plate = String(c.plate || '').trim();
             if (!plate) continue;
+            const repairPart = repairLinesFromCar(c);
+            const existingInvoice = workshopInvoiceFromCar(c);
+            const impoundNote = 'AUTO-IMPOUND: >24h nach Abhol-frist';
+            let itemsMerged = packItemsWithWorkshopInvoice(repairPart, existingInvoice);
+            itemsMerged = itemsMerged
+                ? (itemsMerged + IMPOUND_ITEMS_MARK + '\n' + impoundNote)
+                : impoundNote;
             let payload = {
                 status: 'impound',
                 last_repair_date: new Date().toISOString(),
-                cost: '$0',
-                items: 'AUTO-IMPOUND: >24h nach Abhol-frist'
+                items: itemsMerged
             };
+            if (c.cost) payload.cost = c.cost;
             let res = await updateCarRecord(c, payload);
             if (res.error && /items/i.test(String(res.error.message || ''))) {
                 const { items: _omit, ...noItems } = payload;
@@ -815,6 +891,100 @@
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_AUTO_IMPOUND',location:'index.html:sweepStalePickupsToImpound',message:'auto-impound stale pickups',data:{staleCount:stale.length,moved,plates:stale.slice(0,8).map(x=>x.plate),errSamples},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         return moved;
+    }
+
+    function carCostNum(car) {
+        return parseInt(String(car && car.cost || '').replace(/[^0-9]/g, ''), 10) || 0;
+    }
+    function rawItemsFromCar(row) {
+        if (row && row.items && String(row.items).trim()) return String(row.items).trim();
+        const m = row && row.mechanic;
+        if (!m) return '';
+        const i = m.indexOf(BENNY_ITEMS_MARK);
+        return i === -1 ? '' : m.slice(i + BENNY_ITEMS_MARK.length).trim();
+    }
+    function impoundSuffixFromStored(raw) {
+        const s = String(raw || '');
+        const idx = s.indexOf(IMPOUND_ITEMS_MARK);
+        if (idx !== -1) return s.slice(idx);
+        const auto = s.match(/AUTO-IMPOUND:[^\n]*/i);
+        if (auto) return IMPOUND_ITEMS_MARK + '\n' + auto[0];
+        return IMPOUND_ITEMS_MARK;
+    }
+    function repairDataScore(row) {
+        if (!row) return 0;
+        const inv = workshopInvoiceFromCar(row);
+        const lines = repairLinesFromCar(row);
+        const cost = carCostNum(row);
+        let score = 0;
+        if (inv && inv.length > 40) score += 100;
+        if (lines && !/^AUTO-IMPOUND:/i.test(lines) && !/^-\s*\(keine Reparaturposten\)/i.test(lines)) {
+            score += 40;
+            if (/\$\d/.test(lines)) score += 20;
+        }
+        if (cost > 0) score += 10;
+        return score;
+    }
+    function findBestRepairSourceForImpound(impoundRow) {
+        const plate = String(impoundRow.plate || '').trim().toUpperCase();
+        const selfId = carRecordId(impoundRow);
+        const candidates = dataCache.filter(c =>
+            String(c.plate || '').trim().toUpperCase() === plate &&
+            carRecordId(c) !== selfId &&
+            repairDataScore(c) > 0
+        );
+        candidates.sort((a, b) => repairDataScore(b) - repairDataScore(a) ||
+            (new Date(b.last_repair_date || 0).getTime() - new Date(a.last_repair_date || 0).getTime()));
+        const best = candidates[0] || null;
+        if (!best || repairDataScore(best) <= repairDataScore(impoundRow)) return null;
+        return best;
+    }
+    function impoundRowNeedsRecovery(row) {
+        if (!row || row.status !== 'impound') return false;
+        return !!findBestRepairSourceForImpound(row);
+    }
+    function buildRecoveredImpoundPayload(impoundRow, sourceRow) {
+        const srcRepair = repairLinesFromCar(sourceRow);
+        const srcInv = workshopInvoiceFromCar(sourceRow);
+        let itemsMerged = packItemsWithWorkshopInvoice(srcRepair, srcInv);
+        const suffix = impoundSuffixFromStored(rawItemsFromCar(impoundRow));
+        itemsMerged = itemsMerged ? (itemsMerged + suffix) : suffix;
+        const payload = { items: itemsMerged };
+        if (carCostNum(impoundRow) === 0 && carCostNum(sourceRow) > 0) payload.cost = sourceRow.cost;
+        if (!impoundRow.model && sourceRow.model) payload.model = sourceRow.model;
+        if (!impoundRow.phone && sourceRow.phone) payload.phone = sourceRow.phone;
+        if (!impoundRow.payment_when && sourceRow.payment_when) payload.payment_when = sourceRow.payment_when;
+        return payload;
+    }
+    async function recoverImpoundMissingInvoices() {
+        await resolveCarsRowIdColumn();
+        const impounded = dataCache.filter(c => c.status === 'impound');
+        let recovered = 0;
+        const recoveredPlates = [];
+        for (const row of impounded) {
+            if (!impoundRowNeedsRecovery(row)) continue;
+            const source = findBestRepairSourceForImpound(row);
+            if (!source) continue;
+            const payload = buildRecoveredImpoundPayload(row, source);
+            const res = await updateCarRecord(row, payload);
+            if (res.error) {
+                console.warn('[Impound recovery]', row.plate, res.error.message || res.error);
+            } else {
+                recovered++;
+                recoveredPlates.push(String(row.plate || '').trim());
+            }
+        }
+        if (recovered) console.info('[Impound recovery] wiederhergestellt:', recovered, recoveredPlates.join(', '));
+        return recovered;
+    }
+    async function recoverImpoundMissingInvoicesManual() {
+        const n = await recoverImpoundMissingInvoices();
+        if (n > 0) {
+            await load();
+            alert(n + ' Impound-Eintrag/Einträge: Werkstatt-Rechnung aus älterem Datensatz wiederhergestellt.');
+        } else {
+            alert('Keine wiederherstellbaren Impound-Einträge gefunden (oder bereits vollständig).');
+        }
     }
 
     function formatPickupCountdown(diffMs, deadlineIso) {
@@ -947,6 +1117,19 @@
         // #endregion
         if (lwErr) { console.warn('[Leihwagen]', lwErr.message || lwErr); loanerCache = []; }
         else loanerCache = (lwData || []).slice().sort((a, b) => String(a.plate).localeCompare(String(b.plate), 'de'));
+
+        await resolveCarsRowIdColumn();
+        const recoveredInvoices = await recoverImpoundMissingInvoices();
+        if (recoveredInvoices > 0) {
+            const { data: cDataRec, error: recErr } = await _supabase.from('Cars').select('*');
+            if (!recErr) {
+                dataCache = (cDataRec || []).slice().sort((a, b) => {
+                    const ta = a.last_repair_date ? new Date(a.last_repair_date).getTime() : 0;
+                    const tb = b.last_repair_date ? new Date(b.last_repair_date).getTime() : 0;
+                    return tb - ta;
+                });
+            }
+        }
         
         generateCustomerList();
         // #region agent log
@@ -1570,7 +1753,12 @@
         
         history.forEach(e => {
             const detailLines = repairLinesFromCar(e);
-            const workDone = detailLines ? detailLines.replace(/\n/g, '<br>') : "Keine Details gespeichert";
+            const savedInv = workshopInvoiceFromCar(e);
+            let workDone = detailLines ? detailLines.replace(/\n/g, '<br>') : '';
+            if (savedInv) {
+                workDone += (workDone ? '<br><br>' : '') + '<span style="color:var(--bennys-yellow);">Werkstatt-Rechnung:</span><br><pre style="white-space:pre-wrap;font-size:0.75rem;margin:6px 0 0 0;color:#ddd;">' + savedInv.replace(/</g, '&lt;') + '</pre>';
+            }
+            if (!workDone) workDone = 'Keine Details gespeichert';
             html += `<tr>
                 <td style="vertical-align:top; white-space:nowrap;">${new Date(e.last_repair_date).toLocaleDateString()}</td>
                 <td style="vertical-align:top;"><b>${e.plate}</b><br><small>${e.model || '-'}</small></td>
@@ -1618,8 +1806,8 @@
         fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_TRANSFER_QTY',location:'index.html:calculatePrice',message:'price recalculated incl transfer qty',data:{transferQty,transferUnit,itemsCount:items.length,base,total,discountPct:d},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         
-        // Posten für die Datenbank formatieren
-        currentRepairItems = items.map(i => `- ${i.name}`).join('\n');
+        // Posten für die Datenbank (mit Preis, für Impound-Auslöse / Kundenakte)
+        currentRepairItems = formatRepairItemsForStorage(items);
         
         generateInvoice(items, base, d, total);
     }
@@ -1690,6 +1878,11 @@
         const loanerPlate = document.getElementById('p_loaner').value || null;
         const lwCarsCol = await resolveLoanerCarsColumnName();
         const visits = countVisitsForPlate(plate) + 1;
+        const invBodySave = document.getElementById('invoiceText').textContent;
+        const itemsStored = packItemsWithWorkshopInvoice(
+            currentRepairItems,
+            (invBodySave && !/Noch keine Rechnung/i.test(invBodySave)) ? invBodySave.trim() : ''
+        );
         const upPayload = {
             plate: plate,
             model: document.getElementById('p_model').value,
@@ -1697,7 +1890,7 @@
             phone: document.getElementById('p_phone').value,
             mechanic: document.getElementById('p_mechanic').value,
             cost: document.getElementById('totalDisplay').innerText,
-            items: currentRepairItems,
+            items: itemsStored,
             last_repair_date: new Date().toISOString(),
             visits: visits,
             status: 'offen',
@@ -1740,6 +1933,7 @@
         calculatePrice();
 
         const old = findLatestCarByPlate(plate);
+        const openRow = findLatestCarByPlate(plate, { status: 'offen' });
         const fromForm = (currentRepairItems && String(currentRepairItems).trim()) ? String(currentRepairItems).trim() : '';
         const fromOld = old ? repairLinesFromCar(old) : '';
         let itemsText = fromForm;
@@ -1748,11 +1942,22 @@
         }
         if (!itemsText) itemsText = '- (keine Reparaturposten)';
 
-        const mergedItems = itemsText + '\n--- IMPOUND (eingeliefert) ---';
+        const invEl = document.getElementById('invoiceText');
+        let workshopInvoice = (invEl && invEl.textContent && !/Noch keine Rechnung/i.test(invEl.textContent))
+            ? String(invEl.textContent).trim()
+            : '';
+        if (!workshopInvoice && openRow) workshopInvoice = workshopInvoiceFromCar(openRow);
+        if (!workshopInvoice && old) workshopInvoice = workshopInvoiceFromCar(old);
+
+        let storedItems = packItemsWithWorkshopInvoice(itemsText, workshopInvoice);
+        storedItems = storedItems + IMPOUND_ITEMS_MARK;
 
         let costText = document.getElementById('totalDisplay')?.innerText || '$0';
         const curNum = parseInt(String(costText).replace(/[^0-9]/g, ''), 10) || 0;
-        if (curNum === 0 && old && old.cost) {
+        if (curNum === 0 && openRow && openRow.cost) {
+            const oldNum = parseInt(String(openRow.cost).replace(/[^0-9]/g, ''), 10) || 0;
+            if (oldNum > 0) costText = String(openRow.cost);
+        } else if (curNum === 0 && old && old.cost) {
             const oldNum = parseInt(String(old.cost).replace(/[^0-9]/g, ''), 10) || 0;
             if (oldNum > 0) costText = String(old.cost);
         }
@@ -1766,12 +1971,20 @@
             last_repair_date: new Date().toISOString(),
             status: 'impound',
             cost: costText,
-            items: mergedItems,
-            visits: countVisitsForPlate(plate) + 1
+            items: storedItems,
+            payment_when: document.getElementById('p_payment_when').value
         };
-        const { res: impRes } = await insertCarRecord(impPayload);
+
+        let impRes;
+        if (openRow) {
+            impRes = await updateCarRecord(openRow, impPayload);
+        } else {
+            impPayload.visits = countVisitsForPlate(plate) + 1;
+            const inserted = await insertCarRecord(impPayload);
+            impRes = inserted.res;
+        }
         if (impRes.error) {
-            console.error('[Cars insert impound]', impRes.error);
+            console.error('[Cars impound save]', impRes.error);
             const dupHint = carsInsertDuplicateKeyHint(impRes.error);
             if (dupHint) return alert(dupHint);
             return alert('Impound speichern fehlgeschlagen: ' + (impRes.error.message || impRes.error));
@@ -1796,11 +2009,12 @@
         }).join('');
     }
 
-    /** Rechnungstext nach Impound-Auslöse (Reparaturposten + Auslöse, eine Gesamtsumme). */
-    function generateImpoundReleaseInvoiceText({ owner, plate, model, phone, repairLines, repairCostNum, impoundFee, combinedTotal }) {
+    /** Rechnungstext nach Impound-Auslöse (Werkstatt-Rechnung + Posten + Auslöse). */
+    function generateImpoundReleaseInvoiceText({ owner, plate, model, phone, repairLines, repairCostNum, impoundFee, combinedTotal, workshopInvoice }) {
         const now = new Date();
         const rep = (repairLines && String(repairLines).trim()) ? String(repairLines).trim() : '';
-        const repLines = rep ? rep.split('\n').map(l => l.trim()).filter(Boolean) : [];
+        const repLines = rep ? rep.split('\n').map(l => l.trim()).filter(l => l && !/^AUTO-IMPOUND:/i.test(l)) : [];
+        const savedWerkstatt = (workshopInvoice && String(workshopInvoice).trim()) ? String(workshopInvoice).trim() : '';
 
         const lines = [invHeader('IMPOUND-AUSLÖSE'), invBlank()];
         lines.push(invMeta('Datum', now.toLocaleString('de-DE')));
@@ -1809,7 +2023,10 @@
         if (model) lines.push(invMeta('Modell', sanitizeInvoiceTextPart(model)));
         if (phone) lines.push(invMeta('Telefon', sanitizeInvoiceTextPart(phone)));
 
-        if (repLines.length) {
+        if (savedWerkstatt) {
+            lines.push(invSection('WERKSTATT-RECHNUNG'));
+            lines.push(savedWerkstatt);
+        } else if (repLines.length) {
             lines.push(invSection('REPARATUR-POSTEN'));
             repLines.forEach(raw => {
                 const parsed = parseRepairLineToItem(raw);
@@ -1839,33 +2056,57 @@
         const impoundFee = Number(cost) || 0;
         const row = dataCache.find(c => carRecordId(c) === String(carId)) || findLatestCarByPlate(carId, { status: 'impound' });
         const plateKey = row ? String(row.plate || '').trim() : String(carId).trim();
-        const rawRepairText = row ? repairLinesFromCar(row) : '';
+        const rawStored = row ? (row.items && String(row.items).trim() ? String(row.items) : repairLinesFromCar(row)) : '';
+        const split = splitStoredCarItems(rawStored);
+        const savedWorkshopInvoice = row ? workshopInvoiceFromCar(row) : '';
         const isImpoundPlaceholder = (t) => {
             const s = String(t || '').trim();
-            return !s || /^IMPOUND$/i.test(s) || /^Impound-Auslöse$/i.test(s);
+            return !s || /^IMPOUND$/i.test(s) || /^Impound-Auslöse$/i.test(s) || /^AUTO-IMPOUND:/i.test(s) || /^-\s*\(keine Reparaturposten\)/i.test(s);
         };
-        const cleanRepairText = !isImpoundPlaceholder(rawRepairText) ? String(rawRepairText).trim() : '';
+        const cleanRepairText = !isImpoundPlaceholder(split.repairLines) ? String(split.repairLines).trim() : '';
         const repairCostNum = row ? (parseInt(String(row.cost || '').replace(/[^0-9]/g, ''), 10) || 0) : 0;
         const combinedTotal = repairCostNum + impoundFee;
 
         let mergedItems = cleanRepairText
             ? (cleanRepairText + '\n- Impound-Standgebühr (Auslöse): $' + impoundFee.toLocaleString('de-DE'))
             : ('- Impound-Standgebühr (Auslöse): $' + impoundFee.toLocaleString('de-DE'));
+        if (savedWorkshopInvoice) mergedItems = packItemsWithWorkshopInvoice(mergedItems, savedWorkshopInvoice);
 
+        const releasePickupAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         let payload = {
             status: 'offen',
             cost: '$' + combinedTotal.toLocaleString('de-DE'),
             last_repair_date: new Date().toISOString(),
+            pickup_at: releasePickupAt,
             items: mergedItems
         };
-        let rel = await updateCarRecord(row || carId, payload);
+        const targets = plateKey
+            ? findCarsByPlate(plateKey, { status: 'impound' })
+            : (row ? [row] : []);
+        if (!targets.length && row) targets.push(row);
+        let rel = { error: null };
+        for (const target of targets) {
+            rel = await updateCarRecord(target, payload);
+            if (rel.error) break;
+        }
         // #region agent log
-        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_IMPOUND_RELEASE',location:'index.html:releaseFromImpound',message:'impound release update',data:{plate:plateKey,hasError:!!rel.error,errorMsg:rel.error?String(rel.error.message||rel.error):null,repairCostNum,impoundFee,combinedTotal,hasRepairLines:!!cleanRepairText},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7502/ingest/52a73559-59f6-4908-a22b-5524a15b9a75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'524249'},body:JSON.stringify({sessionId:'524249',runId:'pre-fix',hypothesisId:'H_IMPOUND_RELEASE',location:'index.html:releaseFromImpound',message:'impound release update',data:{plate:plateKey,targets:targets.length,hasError:!!rel.error,errorMsg:rel.error?String(rel.error.message||rel.error):null,repairCostNum,impoundFee,combinedTotal,hasRepairLines:!!cleanRepairText},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         if (rel.error) {
             console.error('[Cars update release]', rel.error);
             return alert('Auslösen fehlgeschlagen: ' + (rel.error.message || rel.error));
         }
+        const plateUpper = String(plateKey || '').trim().toUpperCase();
+        dataCache.forEach(c => {
+            if (String(c.plate || '').trim().toUpperCase() === plateUpper && c.status === 'impound') {
+                c.status = 'offen';
+                c.cost = payload.cost;
+                c.last_repair_date = payload.last_repair_date;
+                c.pickup_at = releasePickupAt;
+                if (payload.items) c.items = payload.items;
+            }
+        });
+        renderImpound();
 
         const invoiceBody = generateImpoundReleaseInvoiceText({
             owner: row?.owner,
@@ -1875,7 +2116,8 @@
             repairLines: cleanRepairText,
             repairCostNum,
             impoundFee,
-            combinedTotal
+            combinedTotal,
+            workshopInvoice: savedWorkshopInvoice
         });
         setInvoiceText(invoiceBody);
         await tryAutoPostRepairInvoice(row?.owner, plateKey, invoiceBody, 'impound');
@@ -2027,6 +2269,7 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('t-'+t).classList.add('active');
         if(t === 'customers') renderCustomers();
+        if (t === 'impound') renderImpound();
         if (t === 'pickup') void load();
         else stopPickupCountdownTicker();
         if (t === 'fraktion' && document.getElementById('f_select').value) generateGroupInvoice();
